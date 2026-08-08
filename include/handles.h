@@ -60,6 +60,7 @@ public:
 
     void load_columns();
     void read_demands();
+    void read_departure_profiles();
     void read_network();
     void read_settings();
 
@@ -266,6 +267,8 @@ private:
     // make the following const T* const?
     std::vector<const AgentType*> ats;
     std::vector<const DemandPeriod*> dps;
+    // F03: validated departure profiles keyed by (profile id, period id)
+    std::vector<const DepartureProfile*> dep_profiles;
 
     unsigned short thread_nums = 1;
     unsigned short max_threads = std::numeric_limits<unsigned short>::max();
@@ -303,6 +306,7 @@ private:
     // the default file name for demand is specified in class Demand
     std::string m_node_filename = "node.csv";
     std::string m_link_filename = "link.csv";
+    std::string m_dep_profile_filename = "departure_profile.csv";
     std::string m_cols_filename = "columns.csv";
     std::string m_link_perf_ue_filename = "link_performance_ue.csv";
     std::string m_link_perf_dta_filename = "link_performance_dta.csv";

@@ -30,6 +30,7 @@ try
 
     nh.read_settings();
     nh.read_network();
+    nh.read_departure_profiles();
 
     if (nh.uses_existing_columns())
         nh.load_columns();

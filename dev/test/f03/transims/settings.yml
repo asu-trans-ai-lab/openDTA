@@ -1,0 +1,32 @@
+---
+# F03 realistic fixture: FHWA Alexandria TRANSIMS Trucks profile (96 x 15-min
+# bins, 05:00 to 28:45 on the monotone clock, raw sum 0.99989 -> REPAIRED tier
+# with recorded factor). Source workbook: consensus_datasets/
+# sample_departure_time_profiles.xlsx, sheet "5.References".
+user_equilibrium:
+  load_columns: false
+  column_gen_num: 20
+  column_opd_num: 20
+
+simulation:
+  enable: false
+  resolution: 6
+  traffic_flow_model: point_queue
+
+agent_type:
+  - type: a
+    name: auto
+    flow_type: 0
+    pce: 1
+    vot: 10
+    free_speed: 60
+    use_link_ffs: true
+
+demand_period:
+  - period: DAY
+    period_id: 1
+    time_period: 0500-2900
+    departure_profile: Trucks
+    demand:
+      - file_name: demand.csv
+        agent_type: auto

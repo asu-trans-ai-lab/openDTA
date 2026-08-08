@@ -562,6 +562,199 @@ void NetworkHandle::read_demands()
     }
 }
 
+// parse HH:MM[:SS] into minutes; HH may exceed 24 on the monotone clock
+// (e.g., 25:30:00 denotes 1:30 AM of the next day)
+static double clock_str_to_minutes(const std::string& t)
+{
+    auto invalid = [&t]() {
+        return std::invalid_argument{
+            "invalid departure_time '" + t + "': expected HH:MM[:SS]"
+        };
+    };
+
+    auto p1 = t.find(':');
+    if (p1 == std::string::npos)
+        throw invalid();
+
+    auto p2 = t.find(':', p1 + 1);
+    auto mm_str = p2 == std::string::npos ? t.substr(p1 + 1) : t.substr(p1 + 1, p2 - p1 - 1);
+    auto ss_str = p2 == std::string::npos ? "0"s : t.substr(p2 + 1);
+
+    try
+    {
+        std::size_t pos = 0;
+        auto hh = std::stoi(t.substr(0, p1), &pos);
+        if (pos != p1)
+            throw invalid();
+
+        auto mm = std::stoi(mm_str, &pos);
+        if (pos != mm_str.size() || mm < 0 || mm >= 60)
+            throw invalid();
+
+        auto ss = std::stoi(ss_str, &pos);
+        if (pos != ss_str.size() || ss < 0 || ss >= 60)
+            throw invalid();
+
+        return hh * 60.0 + mm + ss / 60.0;
+    }
+    catch (const std::invalid_argument&)
+    {
+        throw invalid();
+    }
+}
+
+// canonical form is the integer period_id from F02; a leading 'P' (as in the
+// gold dataset CSVs, e.g. P1) is accepted and stripped
+static int parse_period_id_str(const std::string& s)
+{
+    auto t = (!s.empty() && (s.front() == 'P' || s.front() == 'p')) ? s.substr(1) : s;
+
+    try
+    {
+        std::size_t pos = 0;
+        auto id = std::stoi(t, &pos);
+        if (pos != t.size())
+            throw std::invalid_argument{""};
+
+        return id;
+    }
+    catch (const std::exception&)
+    {
+        throw std::invalid_argument{
+            "invalid period_id '" + s + "' in departure profile file: expected an integer or P<integer>"
+        };
+    }
+}
+
+void NetworkHandle::read_departure_profiles()
+{
+    // unique (profile name, demand period) bindings declared in settings.yml
+    std::vector<const DemandPeriod*> bindings;
+    for (const auto dp : this->dps)
+    {
+        if (!dp->has_departure_profile())
+            continue;
+
+        bool seen = false;
+        for (const auto b : bindings)
+        {
+            if (b->get_period_id() == dp->get_period_id()
+                && b->get_departure_profile_name() == dp->get_departure_profile_name())
+            {
+                seen = true;
+                break;
+            }
+        }
+
+        if (!seen)
+            bindings.push_back(dp);
+    }
+
+    // no bindings: engine behaves exactly as before F03
+    if (bindings.empty())
+        return;
+
+    auto file_path = this->input_dir.string() + '/' + this->m_dep_profile_filename;
+    if (!fs::exists(file_path))
+        throw std::invalid_argument{
+            "settings.yml binds departure profiles but " + file_path + " is missing"
+        };
+
+    // group rows by (profile_id, period_id)
+    std::map<std::pair<std::string, int>, std::vector<DepartureProfile::Bin>> groups;
+    auto reader = miocsv::DictReader(file_path);
+    for (const auto& line : reader)
+    {
+        std::string pid, period_str, dep_t, width_str, weight_str;
+        try
+        {
+            pid = line["profile_id"];
+            period_str = line["period_id"];
+            dep_t = line["departure_time"];
+            width_str = line["bin_width_sec"];
+            weight_str = line["weight"];
+        }
+        catch (const miocsv::NoRecord& nr)
+        {
+            throw std::invalid_argument{
+                "departure profile file misses a required column: "s + nr.what()
+            };
+        }
+
+        auto start_min = clock_str_to_minutes(dep_t);
+        auto width_min = std::stod(width_str) / 60;
+        auto weight = std::stod(weight_str);
+        if (width_min <= 0)
+            throw std::invalid_argument{
+                "nonpositive bin_width_sec for profile " + pid + " at " + dep_t
+            };
+
+        if (weight < 0)
+            throw std::invalid_argument{
+                "negative weight for profile " + pid + " at " + dep_t
+            };
+
+        groups[{pid, parse_period_id_str(period_str)}].push_back({start_min, width_min, weight});
+    }
+
+    for (const auto dp : bindings)
+    {
+        const auto& name = dp->get_departure_profile_name();
+        auto it = groups.find({name, dp->get_period_id()});
+        if (it == groups.end())
+            throw std::invalid_argument{
+                "demand period " + dp->get_period() + " binds departure profile " + name
+                + " but no rows with profile_id " + name + " and period_id "
+                + std::to_string(dp->get_period_id()) + " exist in " + this->m_dep_profile_filename
+            };
+
+        auto bins = it->second;
+        std::sort(bins.begin(), bins.end(),
+                  [](const DepartureProfile::Bin& l, const DepartureProfile::Bin& r) {
+                      return l.start_min < r.start_min;
+                  });
+
+        // every bin must lie inside the period's half-open window [start, end)
+        static constexpr double eps = 1e-9;
+        double sum = 0;
+        for (const auto& b : bins)
+        {
+            if (b.start_min < dp->get_start_time() - eps
+                || b.start_min + b.width_min > dp->get_end_time() + eps)
+                throw std::invalid_argument{
+                    "profile " + name + " has a bin at minute " + std::to_string(b.start_min)
+                    + " outside demand period " + dp->get_period() + " ["
+                    + std::to_string(dp->get_start_time()) + ", "
+                    + std::to_string(dp->get_end_time()) + ")"
+                };
+
+            sum += b.weight;
+        }
+
+        // three-tier tolerance on the weight sum: PASS / REPAIRED / FAIL
+        auto gap = sum > 1 ? sum - 1 : 1 - sum;
+        if (gap > 0.02)
+            throw std::invalid_argument{
+                "profile " + name + " weights sum to " + std::to_string(sum)
+                + "; |sum - 1| exceeds the 2e-2 repair tolerance"
+            };
+
+        auto factor = 1 / sum;
+        if (gap > 1e-4)
+            std::cerr << "profile " << name << " weights sum to " << sum
+                      << "; normalized with recorded factor " << factor << '\n';
+
+        for (auto& b : bins)
+            b.weight *= factor;
+
+        this->dep_profiles.push_back(
+            new DepartureProfile{name, dp->get_period_id(), std::move(bins), factor}
+        );
+    }
+
+    std::cout << this->dep_profiles.size() << " departure profiles are loaded and validated\n";
+}
+
 void NetworkHandle::read_nodes()
 {
     auto reader = miocsv::DictReader(this->input_dir.string() + '/' + this->m_node_filename);
@@ -1061,6 +1254,11 @@ void NetworkHandle::read_settings_yml(const std::string& file_path)
     if (this->ats.empty())
         this->ats.push_back(new AgentType());
 
+    // F03: optional file name override for the departure profile input
+    const auto& dtp = settings["departure_time_profiles"];
+    if (dtp && dtp["source"])
+        this->m_dep_profile_filename = dtp["source"].as<std::string>();
+
     uint8_t j = 0;
     int entry_no = 0;
     std::vector<int> period_ids;
@@ -1070,6 +1268,10 @@ void NetworkHandle::read_settings_yml(const std::string& file_path)
         uint8_t k = 0;
         auto period = dp["period"].as<std::string>();
         auto time_period = dp["time_period"].as<std::string>();
+
+        // F03: optional per-period departure profile binding
+        auto dep_profile_name = dp["departure_profile"]
+                              ? dp["departure_profile"].as<std::string>() : ""s;
 
         // explicit computational key; falls back to the 1-based entry position
         ++entry_no;
@@ -1124,7 +1326,8 @@ void NetworkHandle::read_settings_yml(const std::string& file_path)
                 }
 
                 const auto dp_ = new DemandPeriod{
-                    j++, period_id, period, time_period, Demand{k++, file_name, at}, se
+                    j++, period_id, period, time_period, dep_profile_name,
+                    Demand{k++, file_name, at}, se
                 };
 
                 this->dps.push_back(dp_);
