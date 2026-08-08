@@ -48,42 +48,48 @@ double DemandPeriod::get_cap_ratio(const std::string& link_id, unsigned short it
     }
 }
 
+// time_period follows HHMM-HHMM and denotes the half-open interval
+// [start_time, end_time); a malformed string is a hard error rather than
+// a silent fallback to the default period
 void DemandPeriod::setup_time()
 {
     static const char delim = '-';
 
-    auto b = time_period.begin();
-    auto e = time_period.end();
     auto n = time_period.find(delim);
-
-    auto s1 = std::string(b, b + n);
-    auto s2 = std::string(b + n + 1, e);
-
-    try
-    {
-        start_time = to_minutes(s1) ;
-    }
-    catch (const std::exception& e)
-    {
-        // do nothing
-    }
+    if (n == std::string::npos)
+        throw std::invalid_argument{
+            "invalid time_period '" + time_period + "' in settings.yml: expected HHMM-HHMM"
+        };
 
     try
     {
-        unsigned short end_time = to_minutes(s2);
+        start_time = to_minutes(time_period.substr(0, n));
+        unsigned short end_time = to_minutes(time_period.substr(n + 1));
+        if (end_time <= start_time)
+            throw std::invalid_argument{"end time must be greater than start time"};
+
         dur = end_time - start_time;
     }
     catch (const std::exception& e)
     {
-        // do nothing
+        throw std::invalid_argument{
+            "invalid time_period '" + time_period + "' in settings.yml: expected HHMM-HHMM ("
+            + e.what() + ')'
+        };
     }
 }
 
 unsigned short DemandPeriod::to_minutes(const std::string& t)
 {
-    unsigned short num = std::stoi(t);
+    std::size_t pos = 0;
+    unsigned short num = std::stoi(t, &pos);
+    if (pos != t.size())
+        throw std::invalid_argument{"non-numeric character in '" + t + '\''};
+
     auto h = num / 100;
     auto m = num % 100;
+    if (m >= MINUTES_IN_HOUR)
+        throw std::invalid_argument{"minute part must be less than 60 in '" + t + '\''};
 
     return h * MINUTES_IN_HOUR + m;
 }

@@ -320,7 +320,7 @@ private:
 
 class DemandPeriod {
 public:
-    DemandPeriod() : no {0}, period {"AM"}, time_period {"0700-0800"}, se {nullptr}
+    DemandPeriod() : no {0}, period_id {1}, period {"AM"}, time_period {"0700-0800"}, se {nullptr}
     {
     }
 
@@ -329,10 +329,11 @@ public:
         ds.push_back(dem);
     }
 
-    DemandPeriod(uint8_t no_,
+    DemandPeriod(uint8_t no_, int period_id_,
                  std::string& period_, std::string& time_period_,
                  Demand&& dem, std::unique_ptr<SpecialEvent>& se_)
-        : no {no_}, period {std::move(period_)}, time_period {std::move(time_period_)}, se {std::move(se_)}
+        : no {no_}, period_id {period_id_},
+          period {std::move(period_)}, time_period {std::move(time_period_)}, se {std::move(se_)}
     {
         ds.push_back(std::move(dem));
         setup_time();
@@ -349,6 +350,13 @@ public:
     auto get_no() const
     {
         return no;
+    }
+
+    // explicit computational key from settings.yml (period_id); falls back to
+    // the 1-based position of the demand_period entry when not specified
+    auto get_period_id() const
+    {
+        return period_id;
     }
 
     const std::string& get_period() const
@@ -396,6 +404,7 @@ private:
 
 private:
     uint8_t no;
+    int period_id;
 
     std::string period;
     std::string time_period;
