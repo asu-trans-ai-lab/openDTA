@@ -1,0 +1,9 @@
+period_id,agent_type,profile_id
+P1,car,HBW_SOV_PA
+P1,truck,Trucks
+P2,car,HBO_SOV_PA
+P2,truck,Trucks
+P3,car,HBW_SOV_AP
+P3,truck,Trucks
+P4,car,NHB_SOV_AP
+P4,truck,Trucks

@@ -1,0 +1,5 @@
+period_id,label,start_time,end_time,active
+P1,AM,06:00,10:00,1
+P2,MD,10:00,15:00,0
+P3,PM,15:00,19:00,0
+P4,NT,19:00,24:00,0
