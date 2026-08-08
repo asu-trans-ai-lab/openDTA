@@ -1489,10 +1489,13 @@ public:
      * @param i simulation interval
      * @param k index of demand period (i.e., demand period no)
      */
-    size_type get_travel_time(size_type i, unsigned short k) const
+    double get_travel_time(size_type i, unsigned short k) const
     {
-        auto tt_intvl = get_period_fftt_intvl(i);
-        return to_minute(tt_intvl) + get_avg_waiting_time(i) / SECONDS_IN_MINUTE;
+        // S0 fix (F-5): the fftt lookup is period-indexed - passing the
+        // simulation interval i here read far past the vdfps vector and
+        // produced nondeterministic travel_time/speed garbage (F-6 symptom)
+        auto tt_intvl = get_period_fftt_intvl(k);
+        return to_minute(tt_intvl) + static_cast<double>(get_avg_waiting_time(i)) / SECONDS_IN_MINUTE;
     }
 
     size_type get_virtual_arrival(size_type i, unsigned short k) const
@@ -1520,8 +1523,10 @@ public:
      */
     size_type get_avg_waiting_time(size_type i) const
     {
-        auto delta = to_interval(1);
-        auto arr_rate = cum_arr[i + delta] - cum_arr[i];
+        // S0 fix (F-6): i + delta runs past the end of cum_arr near the
+        // simulation horizon - clamp to the last recorded interval
+        auto j = std::min<size_type>(i + to_interval(1), cum_arr.size() - 1);
+        auto arr_rate = cum_arr[j] - cum_arr[i];
         return get_waiting_time(i) / std::max(static_cast<size_type>(1), arr_rate) * res;
     }
 
