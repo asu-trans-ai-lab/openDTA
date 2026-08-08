@@ -1,0 +1,23 @@
+{
+  "case": "G2_two_link_tandem",
+  "reference": "gate-reference-values Test 02",
+  "tolerance_default": 1e-6,
+  "cell_assertions": [
+    {"link": "L1", "time": "07:01:00", "column": "exit_queue_pce", "expect": 0.0, "note": "queue onset 07:01 (arrivals lagged by tau01)"},
+    {"link": "L1", "time": "07:31:00", "column": "exit_queue_pce", "expect": 150.0, "note": "peak Q1"},
+    {"link": "L1", "time": "07:46:00", "column": "exit_queue_pce", "expect": 0.0, "note": "L1 clearance"},
+    {"link": "L2", "time": "07:03:00", "column": "exit_queue_pce", "expect": 0.0, "note": "queue onset 07:03"},
+    {"link": "L2", "time": "07:48:00", "column": "exit_queue_pce", "expect": 225.0, "note": "peak Q2, 17 minutes after peak Q1 - the mechanism behind 'why do all links congest simultaneously'"},
+    {"link": "L2", "time": "08:33:00", "column": "exit_queue_pce", "expect": 0.0, "note": "L2 clearance, 47 minutes after L1"}
+  ],
+  "episode_assertions": [
+    {"link": "L1", "T2": "07:31:00", "T3": "07:46:00", "peak_queue_pce": 150.0},
+    {"link": "L2", "T2": "07:48:00", "T3": "08:33:00", "peak_queue_pce": 225.0}
+  ],
+  "tandem_identity": [
+    {"upstream": "L1", "downstream": "L2", "tau0_downstream_sec": 120, "tolerance": 1e-9,
+     "note": "CD1(t) == CQ2(t + tau02) every interval; equivalently CD1(t) == CA2(t) at the instant node handoff"}
+  ],
+  "system_conservation": {"tolerance": 1e-9, "note": "CA1(T) - CD2(T) == vehicles still in the tandem system, every T"},
+  "onset_dispersion": {"min_distinct_onsets": 2, "note": "distinct T0 across links by construction"}
+}

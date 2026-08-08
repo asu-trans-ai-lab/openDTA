@@ -1,0 +1,5 @@
+boundary,link_id,Q_before_pce,Q_at_boundary_pce,mu_before,mu_after,delay_before_min,delay_after_min,reset_detected
+07:45:00,L1,20.0,10.0,1200.0,1200.0,0.5,0.5,0
+07:45:00,L2,205.0,210.0,900.0,750.0,14.0,16.8,0
+08:30:00,L1,0.0,0.0,1200.0,1200.0,0.0,0.0,0
+08:30:00,L2,130.0,127.5,750.0,750.0,10.2,10.2,0

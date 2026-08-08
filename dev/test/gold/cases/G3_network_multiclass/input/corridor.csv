@@ -1,0 +1,7 @@
+corridor_id,direction,sequence_no,link_id,role,milepost,merge_node_id,diverge_node_id
+COR_A,OD,1,L1,mainline,0,,
+COR_A,OD,2,L2,mainline,1,,
+COR_A,OD,3,L5,mainline,2,M,
+COR_B,OD,1,L3,mainline,0,,
+COR_B,OD,2,L4,mainline,1,,
+COR_B,OD,3,L5,mainline,2,M,

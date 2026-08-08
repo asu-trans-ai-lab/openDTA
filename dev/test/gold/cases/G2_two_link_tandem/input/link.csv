@@ -1,0 +1,3 @@
+link_id,from_node_id,to_node_id,length_miles,lanes
+L1,O,X,1.0,1
+L2,X,D,2.0,1

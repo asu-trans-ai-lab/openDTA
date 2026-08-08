@@ -1,0 +1,4 @@
+route_id,o_zone_id,d_zone_id,corridor_id,link_sequence
+R_MAIN,Z_O,Z_D,COR_M,M1;M2;M3;M4
+R_ON,Z_R,Z_D,COR_M,RON;M2;M3;M4
+R_OFF,Z_O,Z_X,COR_M,M1;M2;M3;ROF

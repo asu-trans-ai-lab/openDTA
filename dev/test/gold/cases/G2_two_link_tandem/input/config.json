@@ -1,0 +1,14 @@
+{
+  "dataset_id": "GOLD-G2-2L-TANDEM-v2",
+  "case": "Gate 2 / Test 02 - two-link tandem",
+  "description": "Tandem propagation test. tau01=1min mu1=1200; tau02=2min mu2=900, constant. lambda=1500 (07:00-07:30) then 600. Gold: Q1 onset 07:01, peak 150 @07:31, clears 07:46; Q2 onset 07:03, peak 225 @07:48 (17 min after peak Q1), clears 08:33 (47 min after L1). Identity CD1(t)==CQ2(t+tau02) every interval. Distinct onset/clearance across links is the physical mechanism behind 'why do all links congest simultaneously'.",
+  "simulation_start": "07:00:00",
+  "demand_horizon_end": "09:00:00",
+  "simulation_end": "09:30:00",
+  "simulation_dt_sec": 60,
+  "output_dt_sec": 300,
+  "capacity_unit": "pce_per_hour_per_link",
+  "length_unit": "mile",
+  "speed_unit": "mph",
+  "gold_policy": "Analytical deterministic gold. No random numbers."
+}

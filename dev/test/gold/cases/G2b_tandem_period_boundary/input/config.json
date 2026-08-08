@@ -1,0 +1,14 @@
+{
+  "dataset_id": "GOLD-G2B-2L-BOUNDARY-v2",
+  "case": "Gate 2b - tandem across a period boundary",
+  "description": "Same topology as G2; mu2 steps 900->750 at 07:45 while Q2 is standing. Asserts Q2 continuity AND CD1->CQ2 conservation SIMULTANEOUSLY - a boundary bug that resets Q2 also silently breaks conservation, and testing them separately can let both pass. Analytic gold: Q2(07:45)=210 continuous; peak 232.5 @07:48; Q2(08:33)=120; Q2(08:42)=7.5; clears between 08:42 and 08:43 (analytic 08:42:36).",
+  "simulation_start": "07:00:00",
+  "demand_horizon_end": "08:30:00",
+  "simulation_end": "09:30:00",
+  "simulation_dt_sec": 60,
+  "output_dt_sec": 300,
+  "capacity_unit": "pce_per_hour_per_link",
+  "length_unit": "mile",
+  "speed_unit": "mph",
+  "gold_policy": "Analytical deterministic gold. No random numbers."
+}

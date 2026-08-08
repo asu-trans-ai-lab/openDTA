@@ -1,0 +1,25 @@
+{
+  "case": "G2b_tandem_period_boundary",
+  "reference": "gate-reference-values Gate 2b - mu2 steps 900->750 at 07:45 mid-queue",
+  "tolerance_default": 1e-6,
+  "cell_assertions": [
+    {"link": "L2", "time": "07:44:00", "column": "exit_queue_pce", "expect": 205.0},
+    {"link": "L2", "time": "07:45:00", "column": "exit_queue_pce", "expect": 210.0, "note": "I3 continuity at the boundary WITH standing queue"},
+    {"link": "L2", "time": "07:46:00", "column": "exit_queue_pce", "expect": 217.5, "note": "slope changes to +450/h because mu dropped"},
+    {"link": "L2", "time": "07:48:00", "column": "exit_queue_pce", "expect": 232.5, "note": "peak"},
+    {"link": "L2", "time": "08:33:00", "column": "exit_queue_pce", "expect": 120.0},
+    {"link": "L2", "time": "08:42:00", "column": "exit_queue_pce", "expect": 7.5},
+    {"link": "L2", "time": "08:43:00", "column": "exit_queue_pce", "expect": 0.0, "note": "analytic clearance 08:42:36"}
+  ],
+  "boundary_delay_assertions": [
+    {"link": "L2", "boundary": "07:45:00", "mu_before": 900, "mu_after": 750,
+     "delay_before_min": 14.0, "delay_after_min": 16.8,
+     "note": "reverse of G1: capacity DROPS, so delay jumps UP discontinuously while the queue stays continuous"}
+  ],
+  "tandem_identity": [
+    {"upstream": "L1", "downstream": "L2", "tau0_downstream_sec": 120, "tolerance": 1e-9,
+     "note": "asserted SIMULTANEOUSLY with continuity - a boundary reset bug breaks both, and testing them separately can let both pass"}
+  ],
+  "system_conservation": {"tolerance": 1e-9},
+  "queue_continuity": {"boundaries": ["07:45:00", "08:30:00"], "note": "reset_detected must be 0"}
+}

@@ -1,0 +1,7 @@
+route_id,demand_period_id,vehicle_class_id,tap_volume_veh,vehicleized_volume,dnl_entered_volume,dnl_completed_volume,vehicleization_exact
+R1,P1,auto,600.0,600,600,600,1
+R1,P2,auto,350.0,350,350,350,1
+R2,P1,auto,400.0,400,400,400,1
+R2,P1,truck,100.0,100,100,100,1
+R2,P2,auto,450.0,450,450,450,1
+R2,P2,truck,100.0,100,100,100,1

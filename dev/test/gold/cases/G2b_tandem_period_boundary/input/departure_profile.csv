@@ -1,0 +1,4 @@
+profile_id,period_id,departure_time,bin_width_sec,weight,profile_source
+P1_STEP,P1,07:00:00,1800,0.833333333333,gate_reference_test02b
+P1_STEP,P1,07:30:00,900,0.166666666667,gate_reference_test02b
+P2_FLAT,P2,07:45:00,2700,1.0,gate_reference_test02b

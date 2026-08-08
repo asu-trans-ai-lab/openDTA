@@ -1,0 +1,4 @@
+# Gold dataset files are a frozen, hash-manifested contract (dataset_manifest.json
+# records sha256 per file; all files are LF-terminated by contract invariant).
+# Disable any eol normalization so checkouts are byte-identical on all platforms.
+* -text

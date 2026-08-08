@@ -1,0 +1,16 @@
+link_id,period_id,capacity_pce_per_hour,capacity_unit,fftt_sec,reference_tt_sec,allowed_uses,toll,capacity_ratio,capacity_source,reference_tt_source
+L1,P1,1300,pce_per_hour_per_link,60,60,all,0,1.0,synthetic_gold,synthetic_gold
+L1,P2,1300,pce_per_hour_per_link,60,60,all,0,1.0,synthetic_gold,synthetic_gold
+L1,P3,1300,pce_per_hour_per_link,60,60,all,0,1.0,synthetic_gold,synthetic_gold
+L2,P1,900,pce_per_hour_per_link,60,60,all,0,1.0,synthetic_gold,synthetic_gold
+L2,P2,700,pce_per_hour_per_link,60,60,auto,0,0.7778,synthetic_gold,synthetic_gold
+L2,P3,1000,pce_per_hour_per_link,60,60,all,0,1.1111,synthetic_gold,synthetic_gold
+L3,P1,1400,pce_per_hour_per_link,66,66,all,0,1.0,synthetic_gold,synthetic_gold
+L3,P2,1400,pce_per_hour_per_link,66,66,all,0,1.0,synthetic_gold,synthetic_gold
+L3,P3,1400,pce_per_hour_per_link,66,66,all,0,1.0,synthetic_gold,synthetic_gold
+L4,P1,1100,pce_per_hour_per_link,72,72,all,0,1.0,synthetic_gold,synthetic_gold
+L4,P2,1200,pce_per_hour_per_link,72,72,all,0,1.0909,synthetic_gold,synthetic_gold
+L4,P3,1200,pce_per_hour_per_link,72,72,all,0,1.0909,synthetic_gold,synthetic_gold
+L5,P1,1500,pce_per_hour_per_link,72,72,all,0,1.0,synthetic_gold,synthetic_gold
+L5,P2,1000,pce_per_hour_per_link,72,72,all,0,0.6667,synthetic_gold,synthetic_gold
+L5,P3,1400,pce_per_hour_per_link,72,72,all,0,0.9333,synthetic_gold,synthetic_gold

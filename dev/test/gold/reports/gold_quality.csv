@@ -1,0 +1,162 @@
+case,layer,metric,status,actual,target,evidence
+G1_single_link_two_period,A0,demand_period.csv:required_columns,PASS,0,0,
+G1_single_link_two_period,A0,link.csv:required_columns,PASS,0,0,
+G1_single_link_two_period,A0,link_period.csv:required_columns,PASS,0,0,
+G1_single_link_two_period,A0,vehicle_class.csv:required_columns,PASS,0,0,
+G1_single_link_two_period,A0,route.csv:required_columns,PASS,0,0,
+G1_single_link_two_period,A0,corridor.csv:required_columns,PASS,0,0,
+G1_single_link_two_period,A0,columns.csv:required_columns,PASS,0,0,
+G1_single_link_two_period,A0,departure_profile.csv:required_columns,PASS,0,0,
+G1_single_link_two_period,A0,demand.csv:required_columns,PASS,0,0,
+G1_single_link_two_period,G0,periods_contiguous_half_open,PASS,True,True,
+G1_single_link_two_period,G0,link_period_coverage_complete,PASS,0,0,[]
+G1_single_link_two_period,G0,capacity_positive,PASS,,,
+G1_single_link_two_period,G0,fftt_nonnegative,PASS,,,
+G1_single_link_two_period,G0,capacity_unit_declared,PASS,,,
+G1_single_link_two_period,G0,provenance_present,PASS,,,
+G1_single_link_two_period,G0,route_continuity,PASS,0,0,[]
+G1_single_link_two_period,G0,corridor_mainline_continuity,PASS,0,0,[]
+G1_single_link_two_period,G0,profiles_normalized,PASS,0,0,[]
+G1_single_link_two_period,G0,demand_column_conservation,PASS,0,0,{}
+G1_single_link_two_period,G0,column_static_allowed_use_feasible,PASS,0,0,[]
+G1_single_link_two_period,assert,cell L1@07:20:00.exit_queue_pce,PASS,0.0,0.0,Q(07:20-)==0
+G1_single_link_two_period,assert,cell L1@08:00:00.exit_queue_pce,PASS,266.666666667,266.6666666667,"I3: Q(08:00-)==Q(08:00+), the single most important assertion in the suite"
+G1_single_link_two_period,assert,cell L1@08:00:00.CA_veh,PASS,1200.0,1200.0,
+G1_single_link_two_period,assert,cell L1@08:00:00.CD_veh,PASS,933.333333333,933.3333333333,
+G1_single_link_two_period,assert,cell L1@08:20:00.exit_queue_pce,PASS,333.333333334,333.3333333333,"peak queue at 08:20, not at any period midpoint"
+G1_single_link_two_period,assert,cell L1@09:00:00.exit_queue_pce,PASS,0.0,0.0,queue clears at exactly 09:00:00
+G1_single_link_two_period,assert,cell L1@09:00:00.CA_veh,PASS,2133.333333333,2133.3333333333,
+G1_single_link_two_period,assert,cell L1@09:00:00.CD_veh,PASS,2133.333333333,2133.3333333333,
+G1_single_link_two_period,assert,episode L1,PASS,07:21:00/08:20:00/09:00:00/333.333333334,/08:20:00/09:00:00/333.3333333333,
+G1_single_link_two_period,assert,delay discontinuity L1@08:00:00,PASS,16.0->13.333333333,16.0->13.3333333333,"correct physics: travel time drops discontinuously while the queue stays continuous, because capacity jumped. A reviewer seeing this for the first time will report it as a bug."
+G1_single_link_two_period,assert,I3 no queue reset at any boundary,PASS,0,0,
+G2_two_link_tandem,A0,demand_period.csv:required_columns,PASS,0,0,
+G2_two_link_tandem,A0,link.csv:required_columns,PASS,0,0,
+G2_two_link_tandem,A0,link_period.csv:required_columns,PASS,0,0,
+G2_two_link_tandem,A0,vehicle_class.csv:required_columns,PASS,0,0,
+G2_two_link_tandem,A0,route.csv:required_columns,PASS,0,0,
+G2_two_link_tandem,A0,corridor.csv:required_columns,PASS,0,0,
+G2_two_link_tandem,A0,columns.csv:required_columns,PASS,0,0,
+G2_two_link_tandem,A0,departure_profile.csv:required_columns,PASS,0,0,
+G2_two_link_tandem,A0,demand.csv:required_columns,PASS,0,0,
+G2_two_link_tandem,G0,periods_contiguous_half_open,PASS,True,True,
+G2_two_link_tandem,G0,link_period_coverage_complete,PASS,0,0,[]
+G2_two_link_tandem,G0,capacity_positive,PASS,,,
+G2_two_link_tandem,G0,fftt_nonnegative,PASS,,,
+G2_two_link_tandem,G0,capacity_unit_declared,PASS,,,
+G2_two_link_tandem,G0,provenance_present,PASS,,,
+G2_two_link_tandem,G0,route_continuity,PASS,0,0,[]
+G2_two_link_tandem,G0,corridor_mainline_continuity,PASS,0,0,[]
+G2_two_link_tandem,G0,profiles_normalized,PASS,0,0,[]
+G2_two_link_tandem,G0,demand_column_conservation,PASS,0,0,{}
+G2_two_link_tandem,G0,column_static_allowed_use_feasible,PASS,0,0,[]
+G2_two_link_tandem,assert,cell L1@07:01:00.exit_queue_pce,PASS,0.0,0.0,queue onset 07:01 (arrivals lagged by tau01)
+G2_two_link_tandem,assert,cell L1@07:31:00.exit_queue_pce,PASS,150.0,150.0,peak Q1
+G2_two_link_tandem,assert,cell L1@07:46:00.exit_queue_pce,PASS,0.0,0.0,L1 clearance
+G2_two_link_tandem,assert,cell L2@07:03:00.exit_queue_pce,PASS,0.0,0.0,queue onset 07:03
+G2_two_link_tandem,assert,cell L2@07:48:00.exit_queue_pce,PASS,225.0,225.0,"peak Q2, 17 minutes after peak Q1 - the mechanism behind 'why do all links congest simultaneously'"
+G2_two_link_tandem,assert,cell L2@08:33:00.exit_queue_pce,PASS,0.0,0.0,"L2 clearance, 47 minutes after L1"
+G2_two_link_tandem,assert,episode L1,PASS,07:02:00/07:31:00/07:46:00/150.0,/07:31:00/07:46:00/150.0,
+G2_two_link_tandem,assert,episode L2,PASS,07:04:00/07:48:00/08:33:00/225.0,/07:48:00/08:33:00/225.0,
+G2_two_link_tandem,assert,tandem CD_L1(t)==CQ_L2(t+120s),PASS,0,0,CD1(t) == CQ2(t + tau02) every interval; equivalently CD1(t) == CA2(t) at the instant node handoff
+G2_two_link_tandem,assert,system conservation CA1-CD2==in-system,PASS,0.0,1e-09,
+G2_two_link_tandem,assert,distinct congestion onsets across links,PASS,2,2,distinct T0 across links by construction
+G2b_tandem_period_boundary,A0,demand_period.csv:required_columns,PASS,0,0,
+G2b_tandem_period_boundary,A0,link.csv:required_columns,PASS,0,0,
+G2b_tandem_period_boundary,A0,link_period.csv:required_columns,PASS,0,0,
+G2b_tandem_period_boundary,A0,vehicle_class.csv:required_columns,PASS,0,0,
+G2b_tandem_period_boundary,A0,route.csv:required_columns,PASS,0,0,
+G2b_tandem_period_boundary,A0,corridor.csv:required_columns,PASS,0,0,
+G2b_tandem_period_boundary,A0,columns.csv:required_columns,PASS,0,0,
+G2b_tandem_period_boundary,A0,departure_profile.csv:required_columns,PASS,0,0,
+G2b_tandem_period_boundary,A0,demand.csv:required_columns,PASS,0,0,
+G2b_tandem_period_boundary,G0,periods_contiguous_half_open,PASS,True,True,
+G2b_tandem_period_boundary,G0,link_period_coverage_complete,PASS,0,0,[]
+G2b_tandem_period_boundary,G0,capacity_positive,PASS,,,
+G2b_tandem_period_boundary,G0,fftt_nonnegative,PASS,,,
+G2b_tandem_period_boundary,G0,capacity_unit_declared,PASS,,,
+G2b_tandem_period_boundary,G0,provenance_present,PASS,,,
+G2b_tandem_period_boundary,G0,route_continuity,PASS,0,0,[]
+G2b_tandem_period_boundary,G0,corridor_mainline_continuity,PASS,0,0,[]
+G2b_tandem_period_boundary,G0,profiles_normalized,PASS,0,0,[]
+G2b_tandem_period_boundary,G0,demand_column_conservation,PASS,0,0,{}
+G2b_tandem_period_boundary,G0,column_static_allowed_use_feasible,PASS,0,0,[]
+G2b_tandem_period_boundary,assert,cell L2@07:44:00.exit_queue_pce,PASS,205.0,205.0,
+G2b_tandem_period_boundary,assert,cell L2@07:45:00.exit_queue_pce,PASS,210.0,210.0,I3 continuity at the boundary WITH standing queue
+G2b_tandem_period_boundary,assert,cell L2@07:46:00.exit_queue_pce,PASS,217.5,217.5,slope changes to +450/h because mu dropped
+G2b_tandem_period_boundary,assert,cell L2@07:48:00.exit_queue_pce,PASS,232.5,232.5,peak
+G2b_tandem_period_boundary,assert,cell L2@08:33:00.exit_queue_pce,PASS,120.0,120.0,
+G2b_tandem_period_boundary,assert,cell L2@08:42:00.exit_queue_pce,PASS,7.5,7.5,
+G2b_tandem_period_boundary,assert,cell L2@08:43:00.exit_queue_pce,PASS,0.0,0.0,analytic clearance 08:42:36
+G2b_tandem_period_boundary,assert,delay discontinuity L2@07:45:00,PASS,14.0->16.8,14.0->16.8,"reverse of G1: capacity DROPS, so delay jumps UP discontinuously while the queue stays continuous"
+G2b_tandem_period_boundary,assert,I3 no queue reset at any boundary,PASS,0,0,
+G2b_tandem_period_boundary,assert,tandem CD_L1(t)==CQ_L2(t+120s),PASS,0,0,"asserted SIMULTANEOUSLY with continuity - a boundary reset bug breaks both, and testing them separately can let both pass"
+G2b_tandem_period_boundary,assert,system conservation CA1-CD2==in-system,PASS,0.0,1e-09,
+G3_network_multiclass,A0,demand_period.csv:required_columns,PASS,0,0,
+G3_network_multiclass,A0,link.csv:required_columns,PASS,0,0,
+G3_network_multiclass,A0,link_period.csv:required_columns,PASS,0,0,
+G3_network_multiclass,A0,vehicle_class.csv:required_columns,PASS,0,0,
+G3_network_multiclass,A0,route.csv:required_columns,PASS,0,0,
+G3_network_multiclass,A0,corridor.csv:required_columns,PASS,0,0,
+G3_network_multiclass,A0,columns.csv:required_columns,PASS,0,0,
+G3_network_multiclass,A0,departure_profile.csv:required_columns,PASS,0,0,
+G3_network_multiclass,A0,demand.csv:required_columns,PASS,0,0,
+G3_network_multiclass,G0,periods_contiguous_half_open,PASS,True,True,
+G3_network_multiclass,G0,link_period_coverage_complete,PASS,0,0,[]
+G3_network_multiclass,G0,capacity_positive,PASS,,,
+G3_network_multiclass,G0,fftt_nonnegative,PASS,,,
+G3_network_multiclass,G0,capacity_unit_declared,PASS,,,
+G3_network_multiclass,G0,provenance_present,PASS,,,
+G3_network_multiclass,G0,route_continuity,PASS,0,0,[]
+G3_network_multiclass,G0,corridor_mainline_continuity,PASS,0,0,[]
+G3_network_multiclass,G0,profiles_normalized,PASS,0,0,[]
+G3_network_multiclass,G0,demand_column_conservation,PASS,0,0,{}
+G3_network_multiclass,G0,column_static_allowed_use_feasible,PASS,0,0,[]
+G3_network_multiclass,assert,cell L5@08:00:00.exit_queue_pce,PASS,51.18,51.18,I3: L5 queue continuous across 08:00 while mu drops 1500->1000
+G3_network_multiclass,assert,cell L5@09:00:00.exit_queue_pce,PASS,94.6,94.6,I3 at 09:00 while mu jumps 1000->1400
+G3_network_multiclass,assert,cell L5@07:10:00.exit_queue_pce,PASS,0.0,0.0,no phantom queue under free flow - guards the fftt/tick alignment defect
+G3_network_multiclass,assert,episode L2,PASS,07:33:00/07:42:00/07:50:00/18.0,07:33:00/07:42:00/07:50:00/18.0,
+G3_network_multiclass,assert,episode L5,PASS,07:29:00/08:44:00/09:05:00/213.846666667,07:29:00/08:44:00/09:05:00/213.846666667,
+G3_network_multiclass,assert,I3 no queue reset at any boundary,PASS,0,0,
+G3_network_multiclass,assert,distinct congestion onsets across links,PASS,2,2,L2 and L5 congest and clear at visibly different times
+G3_network_multiclass,assert,3.1 total vehicles,PASS,2000,2000,
+G3_network_multiclass,assert,"3.2 sum_t N == round(V_p) per column (largest remainder, no ceil)",PASS,,,
+G3_network_multiclass,assert,3.3 exit_time(i)==entry_time(i+1) every vehicle,PASS,0,0,
+G3_network_multiclass,assert,3.6 rows with demand_period != supply_period (I4 is real),PASS,55,>=1,
+G3_network_multiclass,assert,3.8 all trips complete within clearance buffer,PASS,0,0,
+G3_network_multiclass,assert,fluid<->vehicle CA consistency (discretization bound),PASS,3.24,5.0,bound is whole-vehicle discretization (max PCE 2.0 + within-bin spacing); measured max deviation 3.24 pce at 6 s simulation resolution
+G4_corridor_ramp,A0,demand_period.csv:required_columns,PASS,0,0,
+G4_corridor_ramp,A0,link.csv:required_columns,PASS,0,0,
+G4_corridor_ramp,A0,link_period.csv:required_columns,PASS,0,0,
+G4_corridor_ramp,A0,vehicle_class.csv:required_columns,PASS,0,0,
+G4_corridor_ramp,A0,route.csv:required_columns,PASS,0,0,
+G4_corridor_ramp,A0,corridor.csv:required_columns,PASS,0,0,
+G4_corridor_ramp,A0,columns.csv:required_columns,PASS,0,0,
+G4_corridor_ramp,A0,departure_profile.csv:required_columns,PASS,0,0,
+G4_corridor_ramp,A0,demand.csv:required_columns,PASS,0,0,
+G4_corridor_ramp,G0,periods_contiguous_half_open,PASS,True,True,
+G4_corridor_ramp,G0,link_period_coverage_complete,PASS,0,0,[]
+G4_corridor_ramp,G0,capacity_positive,PASS,,,
+G4_corridor_ramp,G0,fftt_nonnegative,PASS,,,
+G4_corridor_ramp,G0,capacity_unit_declared,PASS,,,
+G4_corridor_ramp,G0,provenance_present,PASS,,,
+G4_corridor_ramp,G0,route_continuity,PASS,0,0,[]
+G4_corridor_ramp,G0,corridor_mainline_continuity,PASS,0,0,[]
+G4_corridor_ramp,G0,profiles_normalized,PASS,0,0,[]
+G4_corridor_ramp,G0,demand_column_conservation,PASS,0,0,{}
+G4_corridor_ramp,G0,column_static_allowed_use_feasible,PASS,0,0,[]
+G4_corridor_ramp,assert,episode M3,PASS,07:19:00/08:33:00/09:13:00/315.0,07:19:00/08:33:00/09:13:00/315.0,"the corridor bottleneck; queue forms in P1, persists across BOTH period boundaries, clears in P3"
+G4_corridor_ramp,assert,episode M2,PASS,07:33:00/07:47:00/07:49:00/10.0,07:33:00/07:47:00/07:49:00/10.0,
+G4_corridor_ramp,assert,I3 no queue reset at any boundary,PASS,0,0,
+G4_corridor_ramp,assert,I3 cell M3@08:00:00,PASS,159.0,159.0,
+G4_corridor_ramp,assert,I3 cell M3@09:00:00,PASS,281.5,281.5,
+G4_corridor_ramp,assert,corridor conservation residual,PASS,1e-09,2e-09,"fails LEGITIMATELY if ramps are undeclared in corridor.csv, and that failure is indistinguishable from a DNL bug - which is why ramps are mandatory in the contract"
+G4_corridor_ramp,assert,on-ramp flow exercised,PASS,,,
+G4_corridor_ramp,assert,off-ramp flow exercised,PASS,,,
+G4_corridor_ramp,assert,distinct congestion onsets across links,PASS,2,2,M2 onset 07:33 vs M3 onset 07:19 - distinct by construction; report std of onset across corridor links as the diagnostic metric
+G4_corridor_ramp,assert,3.1 total vehicles,PASS,2100,2100,
+G4_corridor_ramp,assert,"3.2 sum_t N == round(V_p) per column (largest remainder, no ceil)",PASS,,,
+G4_corridor_ramp,assert,3.3 exit_time(i)==entry_time(i+1) every vehicle,PASS,0,0,
+G4_corridor_ramp,assert,3.6 rows with demand_period != supply_period (I4 is real),PASS,617,>=1,
+G4_corridor_ramp,assert,3.8 all trips complete within clearance buffer,PASS,0,0,
+G4_corridor_ramp,assert,fluid<->vehicle CA consistency (discretization bound),PASS,1.5,5.0,
