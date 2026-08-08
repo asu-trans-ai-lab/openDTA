@@ -1,0 +1,82 @@
+---
+# OpenDTA Simulation Self-Test contract (the release contract for the DNL).
+# Expected truth lives HERE and in expected/, never in production settings.yml.
+# Harness: self_test_simulation.cpp (thin driver over production classes —
+# it re-implements no physics; v1 mirrors these assertions in code, YAML
+# parsing of this file is a planned harness upgrade).
+suite:
+  name: OpenDTA Simulation Self Test
+  version: 1
+  simulation_resolution_sec: 6
+
+execution:
+  default_threads: 1
+  repeat_runs: 3
+  fail_fast: true
+
+tolerance:
+  conservation_vehicle: 0
+  cumulative_vehicle: 1
+  event_time_intervals: 1
+  analytical_relative: 0.001
+  regional_relative: 0.01
+
+cases:
+  - id: ST00_F6_FREEFLOW
+    path: cases/ST00_freeflow_tt
+    enabled: true
+    purpose: F5_F6_travel_time_speed_and_horizon_boundary
+    # 1-mile link, 60 mph, integer service capacity, demand far below capacity:
+    # every output row must show free-flow travel time and speed, and repeated
+    # runs must be byte-identical. On the pre-S0 engine this case is RED:
+    # get_travel_time(i,k) passes the simulation interval i into the
+    # period-indexed vdfps lookup (out-of-bounds read).
+    assertions:
+      repeat_byte_identical:
+        - link_performance_dta.csv
+        - trajectories.csv
+      expected:
+        freeflow_travel_time_min: 1.0
+        freeflow_speed_mph: 60.0
+
+  - id: ST01_PROFILE_LOADING
+    path: cases/ST01_profile_loading
+    enabled: false          # awaits S1/S2 (agents do not consume profiles yet)
+    expected:
+      total_demand: 1000
+      bin_counts: [400, 600]
+      final_CA: 1000
+
+  - id: ST02_POINT_QUEUE_GOLD
+    path: cases/ST02_point_queue_gold
+    enabled: false          # awaits S1-S5 (analytical single-link chain)
+    # lambda = 600/1800/600 veh/h over 0-30/30-90/90-150 min, mu = 1200 veh/h.
+    # IMPORTANT (S5 correction): the Newell oracle compares
+    #   Q(t) = A_service(t) - D(t), where A_service(t) = A_entry(t - fftt);
+    # LinkQueue::get_virtual_arrival() is that shifted curve. Comparing
+    # against raw A_entry would clock-shift T0/T2/T3 by the FFTT.
+    expected:
+      total_demand: 2700
+      T0_min: 30
+      Tpeak_min: 90
+      T3_min: 150
+      Qmax_veh: 600
+      total_delay_veh_hour: 600
+      max_wait_min: 30
+
+  - id: ST03_TANDEM
+    path: cases/ST03_tandem_gold
+    enabled: false          # awaits S6
+    expected:
+      conservation_exact: true
+      cd1_ca2_tolerance_vehicle: 1
+
+# Service-discretizer exact-sequence contract (S4, unit level):
+#   legacy LCG: seed0 = 101, seed_{t+1} = (17364 * seed_t) % 65521,
+#   release(+1) iff seed/65521 < frac. For c = 0.1 the first 20 realizations
+#   with seed 101 are FROZEN once S4 lands; any change to the algorithm,
+#   seed, comparison direction, draw count, or call ordering turns this red.
+
+# Parallel era (P01-P03): extend with
+#   thread_invariance: { thread_counts: [1, 2, 4, 8] }
+# CA/CD/Q/N/trajectories must match the serial gold exactly.

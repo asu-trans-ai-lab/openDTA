@@ -44,6 +44,20 @@ if (PARALLEL)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 endif()
 
+# simulation self-test harness: thin driver over the production sources
+# (dev/self_test_simulation/simulation_self_test.yml is the test contract)
+option(SELF_TEST "Build the simulation self-test harness" OFF)
+if (SELF_TEST)
+    add_executable(OpenDTA_self_test
+        dev/self_test_simulation/self_test_simulation.cpp
+        src/elements.cpp src/simulation.cpp src/ue.cpp src/utils.cpp)
+    target_include_directories(OpenDTA_self_test PUBLIC ${PROJECT_BINARY_DIR})
+    target_link_libraries(OpenDTA_self_test PRIVATE ${YAML_CPP})
+    if (PARALLEL)
+        target_link_libraries(OpenDTA_self_test PRIVATE OpenMP::OpenMP_CXX)
+    endif()
+endif()
+
 # it is for std::experimental::filesystem in utils.cpp if g++ happens to be the compiler
 if (CMAKE_COMPILER_IS_GNUCXX)
     target_link_libraries(${PROJECT_NAME} PRIVATE stdc++fs)

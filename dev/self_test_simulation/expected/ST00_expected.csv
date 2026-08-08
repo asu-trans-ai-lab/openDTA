@@ -1,0 +1,4 @@
+quantity,value,tolerance,basis
+freeflow_travel_time_min,1.0,1e-6,length 1 mile / free_speed 60 mph * 60
+freeflow_speed_mph,60.0,1e-4,length / travel_time * 60
+repeat_runs_byte_identical,1,exact,same input same executable

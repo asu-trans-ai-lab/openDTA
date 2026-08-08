@@ -1,0 +1,30 @@
+---
+# ST00: free-flow travel time / speed / horizon safety / determinism.
+# 1-mile 60-mph link (FFTT = 1.0 min), capacity 3600/h -> exactly 6 veh per
+# 6-sec interval (integer service path), demand 60 veh/h -> no queue ever.
+user_equilibrium:
+  load_columns: false
+  column_gen_num: 20
+  column_opd_num: 20
+
+simulation:
+  enable: true
+  resolution: 6
+  traffic_flow_model: point_queue
+
+agent_type:
+  - type: a
+    name: auto
+    flow_type: 0
+    pce: 1
+    vot: 10
+    free_speed: 60
+    use_link_ffs: true
+
+demand_period:
+  - period: AM
+    period_id: 1
+    time_period: 0700-0800
+    demand:
+      - file_name: demand.csv
+        agent_type: auto
