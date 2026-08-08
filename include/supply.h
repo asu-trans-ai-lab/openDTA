@@ -1556,6 +1556,15 @@ private:
     {
         double c1 = link->get_cap() / SECONDS_IN_HOUR * res;
         size_type c2 = std::floor(c1);
+        // S0b fix (F-3 integer branch): a whole-number per-interval capacity
+        // must be served exactly - the residual draw below returned +1 with
+        // certainty when c1 == c2, inflating every integer capacity by one
+        // vehicle per interval (e.g. 1200/h became 1800/h at 6-s resolution).
+        // The fractional branch keeps its legacy-replacement in S4
+        // (ServiceDiscretizer); see dev/doc/F03d_determinism_rng_audit.md #3.
+        if (c1 == c2)
+            return c2;
+
         size_type residual = uniform(0.0, 1.0) >= c1 - c2 ? 1 : 0;
 
         return c2 + residual;

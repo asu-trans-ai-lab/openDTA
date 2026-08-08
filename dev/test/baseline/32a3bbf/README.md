@@ -50,6 +50,14 @@ past the horizon end in `get_avg_waiting_time()`. The self-test case
 `dev/self_test_simulation` ST00 reproduced the defect RED (59/60 rows wrong,
 run 3 drift) and turned GREEN with the fix.
 
+**S0b follow-up (same branch):** the analytical self-test bank
+(dev/self_test_simulation ST02 cases) caught `get_flow_cap()` inflating every
+whole-number per-interval capacity by one vehicle (F-3 integer branch: a
+1200/h link was served at 1800/h). Fixed to serve declared capacity exactly;
+`link_performance_dta.csv` references re-frozen once more (Two_Corridor link
+3, cap 3000/h, now discharges 50/min instead of the inflated 60/min).
+UE outputs and trajectories.csv were byte-unchanged by S0b.
+
 **Comparison rule (waiver deleted):** ALL columns of every output file,
 including `travel_time` and `speed`, compare **byte-exact**. The
 `link_performance_dta.csv` references below were re-frozen with the S0
@@ -66,11 +74,11 @@ BB277B8C66F0B879    145096  Chicago_Sketch_default/link_performance_ue.csv
 C69F13AC21A1D545       223  Two_Corridor_default/columns.csv
 9701BD5B430DB436       280  Two_Corridor_default/link_performance_ue.csv
 7A5007EAC248FD49       175  Two_Corridor_sim_kinematic_wave/output/columns.csv
-92E75AAD763651BA      4225  Two_Corridor_sim_kinematic_wave/output/link_performance_dta.csv  (re-frozen at S0)
+FA744D5576165025      4214  Two_Corridor_sim_kinematic_wave/output/link_performance_dta.csv  (re-frozen at S0b)
 1D54E57A8162EC0B       254  Two_Corridor_sim_kinematic_wave/output/link_performance_ue.csv
 492CE066581BF70C      6657  Two_Corridor_sim_kinematic_wave/output/trajectories.csv
 7A5007EAC248FD49       175  Two_Corridor_sim_point_queue/output/columns.csv
-92E75AAD763651BA      4225  Two_Corridor_sim_point_queue/output/link_performance_dta.csv     (re-frozen at S0; identical to KW - no congestion in this case)
+FA744D5576165025      4214  Two_Corridor_sim_point_queue/output/link_performance_dta.csv     (re-frozen at S0b; identical to KW in this case)
 1D54E57A8162EC0B       254  Two_Corridor_sim_point_queue/output/link_performance_ue.csv
 492CE066581BF70C      6657  Two_Corridor_sim_point_queue/output/trajectories.csv
 ```
