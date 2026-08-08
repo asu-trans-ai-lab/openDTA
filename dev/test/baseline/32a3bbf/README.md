@@ -49,11 +49,14 @@ showed the same travel_time/speed drift on `volume > 0` rows as well
 CA, CD, density, queue) is byte-stable across reruns. The rule below reflects
 that fuller evidence.
 
-**Regression comparison rule (corrected in F03c):** compare
+**TEMPORARY WAIVER for defect F-6 (not a permanent rule):** compare
 `link_performance_dta.csv` excluding the `travel_time` and `speed` columns on
 **all** rows. All other columns and all other files compare byte-exact
 (`trajectories.csv` is fully deterministic and remains the agent-level
-regression signal).
+regression signal). **This waiver expires when F-6 is repaired; travel_time
+and speed then return to the byte-exact gate.** Permanently excluding the
+DNL's two most important outputs from regression is not acceptable — see
+`dev/doc/F03d_determinism_rng_audit.md` §4.
 
 ## File hashes (sha256, first 16 hex chars)
 
