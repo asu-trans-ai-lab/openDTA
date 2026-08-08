@@ -1,2 +1,2 @@
-profile_id,period_id,departure_time,bin_width_sec,weight
-OTHER_PROFILE,1,07:00:00,1800,1.0
+profile_id,departure_time,bin_width_sec,weight
+OTHER_PROFILE,07:00:00,1800,1.0

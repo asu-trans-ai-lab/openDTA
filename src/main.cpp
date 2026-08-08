@@ -30,12 +30,14 @@ try
 
     nh.read_settings();
     nh.read_network();
-    nh.read_departure_profiles();
 
     if (nh.uses_existing_columns())
         nh.load_columns();
     else
         nh.read_demands();
+
+    // after demand loading so the G5 audit can report period demand totals
+    nh.read_departure_profiles();
 
     mini_timer.stop();
     mini_timer.broadcast("OpenDTA loads input in ");

@@ -267,8 +267,12 @@ private:
     // make the following const T* const?
     std::vector<const AgentType*> ats;
     std::vector<const DemandPeriod*> dps;
-    // F03: validated departure profiles keyed by (profile id, period id)
+    // F03c: binding table from settings.yml and the per-binding conditional
+    // distributions derived from the 24h profile library
+    std::vector<ProfileBinding> profile_bindings;
     std::vector<const DepartureProfile*> dep_profiles;
+    // F03c: loaded demand volume per DemandPeriod::no, for the G5 audit
+    std::map<unsigned short, double> demand_totals;
 
     unsigned short thread_nums = 1;
     unsigned short max_threads = std::numeric_limits<unsigned short>::max();

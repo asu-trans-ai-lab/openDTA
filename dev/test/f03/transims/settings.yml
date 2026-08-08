@@ -1,8 +1,11 @@
 ---
-# F03 realistic fixture: FHWA Alexandria TRANSIMS Trucks profile (96 x 15-min
-# bins, 05:00 to 28:45 on the monotone clock, raw sum 0.99989 -> REPAIRED tier
-# with recorded factor). Source workbook: consensus_datasets/
-# sample_departure_time_profiles.xlsx, sheet "5.References".
+# F03c four-period audit fixture (the official G5 record): AM/MD/PM/NT
+# registry, car/truck agent types, FHWA Alexandria TRANSIMS 24h library.
+# The audit must reproduce the S_r values approved in the F03b review:
+#   AM  car HBW_SOV_PA 0.738655   truck Trucks 0.139320
+#   MD  car HBO_SOV_PA 0.305659   truck Trucks 0.445500
+#   PM  car HBW_SOV_AP 0.682813   truck Trucks 0.301650
+#   NT  car NHB_SOV_AP 0.100012   truck Trucks 0.108340
 user_equilibrium:
   load_columns: false
   column_gen_num: 20
@@ -14,19 +17,77 @@ simulation:
   traffic_flow_model: point_queue
 
 agent_type:
-  - type: a
-    name: auto
+  - type: c
+    name: car
     flow_type: 0
     pce: 1
     vot: 10
     free_speed: 60
     use_link_ffs: true
+  - type: t
+    name: truck
+    flow_type: 0
+    pce: 2
+    vot: 20
+    free_speed: 55
+    use_link_ffs: true
 
 demand_period:
-  - period: DAY
+  - period: AM
     period_id: 1
-    time_period: 0500-2900
-    departure_profile: Trucks
+    time_period: 0600-1000
     demand:
       - file_name: demand.csv
-        agent_type: auto
+        agent_type: car
+      - file_name: demand.csv
+        agent_type: truck
+  - period: MD
+    period_id: 2
+    time_period: 1000-1500
+    demand:
+      - file_name: demand.csv
+        agent_type: car
+      - file_name: demand.csv
+        agent_type: truck
+  - period: PM
+    period_id: 3
+    time_period: 1500-1900
+    demand:
+      - file_name: demand.csv
+        agent_type: car
+      - file_name: demand.csv
+        agent_type: truck
+  - period: NT
+    period_id: 4
+    time_period: 1900-2400
+    demand:
+      - file_name: demand.csv
+        agent_type: car
+      - file_name: demand.csv
+        agent_type: truck
+
+departure_profile_binding:
+  - period_id: 1
+    agent_type: car
+    profile_id: HBW_SOV_PA
+  - period_id: 1
+    agent_type: truck
+    profile_id: Trucks
+  - period_id: 2
+    agent_type: car
+    profile_id: HBO_SOV_PA
+  - period_id: 2
+    agent_type: truck
+    profile_id: Trucks
+  - period_id: 3
+    agent_type: car
+    profile_id: HBW_SOV_AP
+  - period_id: 3
+    agent_type: truck
+    profile_id: Trucks
+  - period_id: 4
+    agent_type: car
+    profile_id: NHB_SOV_AP
+  - period_id: 4
+    agent_type: truck
+    profile_id: Trucks

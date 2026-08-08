@@ -318,12 +318,14 @@ private:
     const AgentType* at;
 };
 
-// a departure-time profile bound to one demand period (F03): bins of
-// (start minute on the possibly >24h monotone clock, width in minutes,
-// normalized weight); nothing consumes it until vehicle generation (F04)
+// F03c: a per-binding conditional departure distribution derived from a
+// 24-hour library profile clipped to one demand-period window and
+// renormalized (weights sum to 1 by construction). Nothing consumes it
+// until vehicle generation (F04).
 class DepartureProfile {
 public:
     struct Bin {
+        // folded time of day in minutes; width in minutes; conditional weight
         double start_min;
         double width_min;
         double weight;
@@ -331,9 +333,10 @@ public:
 
     DepartureProfile() = delete;
 
-    DepartureProfile(std::string id_, int period_id_, std::vector<Bin>&& bins_, double factor_)
-        : id {std::move(id_)}, period_id {period_id_},
-          bins {std::move(bins_)}, norm_factor {factor_}
+    DepartureProfile(std::string id_, int period_id_, std::string agent_type_,
+                     std::vector<Bin>&& bins_, double window_mass_)
+        : id {std::move(id_)}, period_id {period_id_}, agent_type {std::move(agent_type_)},
+          bins {std::move(bins_)}, window_mass {window_mass_}
     {
     }
 
@@ -355,27 +358,44 @@ public:
         return period_id;
     }
 
+    // empty means the binding applies to every agent type of the period
+    const std::string& get_agent_type() const
+    {
+        return agent_type;
+    }
+
     const std::vector<Bin>& get_bins() const
     {
         return bins;
     }
 
-    auto get_norm_factor() const
+    // S_r: raw 24h profile mass inside the period window before renormalization
+    auto get_window_mass() const
     {
-        return norm_factor;
+        return window_mass;
     }
 
 private:
     std::string id;
     int period_id;
+    std::string agent_type;
 
     std::vector<Bin> bins;
-    double norm_factor;
+    double window_mass;
+};
+
+// F03c: one row of the settings.yml departure_profile_binding block —
+// the only join between demand periods and the 24h profile library
+struct ProfileBinding {
+    int period_id;
+    std::string agent_type;  // empty = all agent types of the period
+    std::string profile_id;
 };
 
 class DemandPeriod {
 public:
-    DemandPeriod() : no {0}, period_id {1}, period {"AM"}, time_period {"0700-0800"}, se {nullptr}
+    DemandPeriod() : no {0}, period_id {1}, active {true},
+                     period {"AM"}, time_period {"0700-0800"}, se {nullptr}
     {
     }
 
@@ -384,12 +404,11 @@ public:
         ds.push_back(dem);
     }
 
-    DemandPeriod(uint8_t no_, int period_id_,
-                 std::string& period_, std::string& time_period_, std::string& dep_profile_name_,
+    DemandPeriod(uint8_t no_, int period_id_, bool active_,
+                 std::string& period_, std::string& time_period_,
                  Demand&& dem, std::unique_ptr<SpecialEvent>& se_)
-        : no {no_}, period_id {period_id_},
-          period {std::move(period_)}, time_period {std::move(time_period_)},
-          dep_profile_name {std::move(dep_profile_name_)}, se {std::move(se_)}
+        : no {no_}, period_id {period_id_}, active {active_},
+          period {std::move(period_)}, time_period {std::move(time_period_)}, se {std::move(se_)}
     {
         ds.push_back(std::move(dem));
         setup_time();
@@ -425,15 +444,11 @@ public:
         return time_period;
     }
 
-    // F03: departure profile binding from settings.yml (empty when unbound)
-    const std::string& get_departure_profile_name() const
+    // F03c: registry rows stay loaded when inactive, but their demand files
+    // are not read and they produce no columns or agents
+    bool is_active() const
     {
-        return dep_profile_name;
-    }
-
-    bool has_departure_profile() const
-    {
-        return !dep_profile_name.empty();
+        return active;
     }
 
     const auto& get_demands() const
@@ -472,10 +487,10 @@ private:
 private:
     uint8_t no;
     int period_id;
+    bool active;
 
     std::string period;
     std::string time_period;
-    std::string dep_profile_name;
 
     unsigned short start_time = 420;
     unsigned short dur = 60;

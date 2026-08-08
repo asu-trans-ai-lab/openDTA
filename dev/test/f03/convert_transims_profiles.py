@@ -12,8 +12,10 @@ dev/test/gold/reports/chicago/chicago_profile_audit.csv.
 
 Deterministic, RNG-free. Bins before 5 AM are emitted on the monotone >24h
 clock (24:00-28:45) per the gold v2 convention. Raw weights are written to
-`weight` so the engine's own G5 normalization is exercised (Trucks sums to
-0.99989 -> REPAIRED tier with recorded factor).
+`weight` so the engine's own G5 full-day tolerance is exercised (Trucks sums
+to 0.99989 -> REPAIRED tier with recorded factor). Per the F03b frozen
+contract this is a 24h library: profile_id only, NO period_id column —
+periods attach via settings.yml departure_profile_binding.
 """
 import csv
 import openpyxl
@@ -22,7 +24,6 @@ SRC = r"..\..\..\..\consensus_datasets\sample_departure_time_profiles.xlsx"
 DST = r"transims\departure_profile.csv"
 
 HDR_ROW, FIRST_ROW, LAST_ROW = 44, 45, 51
-PERIOD_ID = 1  # single all-day demand period in the fixture's settings.yml
 
 wb = openpyxl.load_workbook(SRC, data_only=True)
 ws = wb["5.References"]
@@ -44,8 +45,8 @@ def to_monotone_sec(label):
 
 with open(DST, "w", newline="") as f:
     w = csv.writer(f, lineterminator="\n")
-    w.writerow(["profile_id", "period_id", "departure_time", "bin_width_sec",
-                "weight", "weight_raw", "profile_source"])
+    w.writerow(["profile_id", "departure_time", "bin_width_sec",
+                "weight", "profile_source"])
     for r in range(FIRST_ROW, LAST_ROW + 1):
         pid = ws.cell(row=r, column=3).value
         bins = sorted((to_monotone_sec(label), float(ws.cell(row=r, column=c).value))
@@ -53,7 +54,7 @@ with open(DST, "w", newline="") as f:
         for sec, wt in bins:
             hh, rem = divmod(sec, 3600)
             t = f"{hh:02d}:{rem // 60:02d}:00"
-            w.writerow([pid, PERIOD_ID, t, 900, repr(wt), repr(wt),
+            w.writerow([pid, t, 900, repr(wt),
                         "FHWA_Alexandria_TRANSIMS_sheet5_references"])
 
 print(f"wrote {DST}")

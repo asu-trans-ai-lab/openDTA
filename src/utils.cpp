@@ -524,6 +524,9 @@ void NetworkHandle::read_demand(const std::string& file_path, unsigned short dp_
         total_vol += vol;
     }
 
+    // F03c: loaded volume per DemandPeriod for the G5 time contract audit
+    this->demand_totals[dp_no] += total_vol;
+
     std::cout << "the total demand is " << total_vol << '\n'
               << void_od_num << " invalid OD pairs are discarded with a total volume of "
               << void_vol << '\n';
@@ -533,6 +536,14 @@ void NetworkHandle::read_demands()
 {
     for (const auto& dp : this->dps)
     {
+        // F03c: inactive registry rows load no demand
+        if (!dp->is_active())
+        {
+            std::cout << "demand period " << dp->get_period()
+                      << " is inactive; its demand is not loaded\n";
+            continue;
+        }
+
         auto dp_no = dp->get_no();
         for (auto& d : dp->get_demands())
         {
@@ -626,50 +637,37 @@ static int parse_period_id_str(const std::string& s)
     }
 }
 
+// minutes on the folded 24h clock to HH:MM
+static std::string format_clock(double minutes)
+{
+    auto m = static_cast<int>(minutes + 0.5);
+    char buf[8];
+    std::snprintf(buf, sizeof(buf), "%02d:%02d", m / 60, m % 60);
+    return buf;
+}
+
 void NetworkHandle::read_departure_profiles()
 {
-    // unique (profile name, demand period) bindings declared in settings.yml
-    std::vector<const DemandPeriod*> bindings;
-    for (const auto dp : this->dps)
-    {
-        if (!dp->has_departure_profile())
-            continue;
-
-        bool seen = false;
-        for (const auto b : bindings)
-        {
-            if (b->get_period_id() == dp->get_period_id()
-                && b->get_departure_profile_name() == dp->get_departure_profile_name())
-            {
-                seen = true;
-                break;
-            }
-        }
-
-        if (!seen)
-            bindings.push_back(dp);
-    }
-
-    // no bindings: engine behaves exactly as before F03
-    if (bindings.empty())
+    if (this->profile_bindings.empty())
         return;
 
     auto file_path = this->input_dir.string() + '/' + this->m_dep_profile_filename;
     if (!fs::exists(file_path))
         throw std::invalid_argument{
-            "settings.yml binds departure profiles but " + file_path + " is missing"
+            "settings.yml declares departure_profile_binding but " + file_path + " is missing"
         };
 
-    // group rows by (profile_id, period_id)
-    std::map<std::pair<std::string, int>, std::vector<DepartureProfile::Bin>> groups;
+    // 24h library keyed by profile_id only; a period_id column, if present,
+    // is ignored (transitional files keep parsing)
+    std::map<std::string, std::vector<DepartureProfile::Bin>> lib;
+    bool checked_period_id_col = false;
     auto reader = miocsv::DictReader(file_path);
     for (const auto& line : reader)
     {
-        std::string pid, period_str, dep_t, width_str, weight_str;
+        std::string pid, dep_t, width_str, weight_str;
         try
         {
             pid = line["profile_id"];
-            period_str = line["period_id"];
             dep_t = line["departure_time"];
             width_str = line["bin_width_sec"];
             weight_str = line["weight"];
@@ -679,6 +677,22 @@ void NetworkHandle::read_departure_profiles()
             throw std::invalid_argument{
                 "departure profile file misses a required column: "s + nr.what()
             };
+        }
+
+        if (!checked_period_id_col)
+        {
+            checked_period_id_col = true;
+            try
+            {
+                line["period_id"];
+                std::cout << "note: the period_id column in " << this->m_dep_profile_filename
+                          << " is ignored; profiles are full-day and periods bind via "
+                          << "departure_profile_binding\n";
+            }
+            catch (const std::exception&)
+            {
+                // no such column: the canonical form
+            }
         }
 
         auto start_min = clock_str_to_minutes(dep_t);
@@ -694,65 +708,190 @@ void NetworkHandle::read_departure_profiles()
                 "negative weight for profile " + pid + " at " + dep_t
             };
 
-        groups[{pid, parse_period_id_str(period_str)}].push_back({start_min, width_min, weight});
+        lib[pid].push_back({start_min, width_min, weight});
     }
 
-    for (const auto dp : bindings)
+    // profiles actually referenced by bindings
+    std::vector<std::string> referenced;
+    for (const auto& b : this->profile_bindings)
     {
-        const auto& name = dp->get_departure_profile_name();
-        auto it = groups.find({name, dp->get_period_id()});
-        if (it == groups.end())
-            throw std::invalid_argument{
-                "demand period " + dp->get_period() + " binds departure profile " + name
-                + " but no rows with profile_id " + name + " and period_id "
-                + std::to_string(dp->get_period_id()) + " exist in " + this->m_dep_profile_filename
-            };
-
-        auto bins = it->second;
-        std::sort(bins.begin(), bins.end(),
-                  [](const DepartureProfile::Bin& l, const DepartureProfile::Bin& r) {
-                      return l.start_min < r.start_min;
-                  });
-
-        // every bin must lie inside the period's half-open window [start, end)
-        static constexpr double eps = 1e-9;
-        double sum = 0;
-        for (const auto& b : bins)
+        bool seen = false;
+        for (const auto& r : referenced)
         {
-            if (b.start_min < dp->get_start_time() - eps
-                || b.start_min + b.width_min > dp->get_end_time() + eps)
-                throw std::invalid_argument{
-                    "profile " + name + " has a bin at minute " + std::to_string(b.start_min)
-                    + " outside demand period " + dp->get_period() + " ["
-                    + std::to_string(dp->get_start_time()) + ", "
-                    + std::to_string(dp->get_end_time()) + ")"
-                };
-
-            sum += b.weight;
+            if (r == b.profile_id)
+            {
+                seen = true;
+                break;
+            }
         }
 
-        // three-tier tolerance on the weight sum: PASS / REPAIRED / FAIL
-        auto gap = sum > 1 ? sum - 1 : 1 - sum;
+        if (!seen)
+            referenced.push_back(b.profile_id);
+    }
+
+    // the three-tier tolerance applies to the FULL-DAY sum only; the
+    // conditional distributions below are invariant to this scaling
+    for (const auto& name : referenced)
+    {
+        auto it = lib.find(name);
+        if (it == lib.end())
+            throw std::invalid_argument{
+                "departure_profile_binding references profile " + name
+                + " which is not present in " + this->m_dep_profile_filename
+            };
+
+        double total = 0;
+        for (const auto& b : it->second)
+            total += b.weight;
+
+        auto gap = total > 1 ? total - 1 : 1 - total;
         if (gap > 0.02)
             throw std::invalid_argument{
-                "profile " + name + " weights sum to " + std::to_string(sum)
+                "profile " + name + " full-day weights sum to " + std::to_string(total)
                 + "; |sum - 1| exceeds the 2e-2 repair tolerance"
             };
 
-        auto factor = 1 / sum;
         if (gap > 1e-4)
-            std::cerr << "profile " << name << " weights sum to " << sum
-                      << "; normalized with recorded factor " << factor << '\n';
-
-        for (auto& b : bins)
-            b.weight *= factor;
-
-        this->dep_profiles.push_back(
-            new DepartureProfile{name, dp->get_period_id(), std::move(bins), factor}
-        );
+            std::cerr << "profile " << name << " full-day weights sum to " << total
+                      << "; normalized with recorded factor " << 1 / total << '\n';
     }
 
-    std::cout << this->dep_profiles.size() << " departure profiles are loaded and validated\n";
+    // registry: unique period ids in settings order
+    std::vector<const DemandPeriod*> registry;
+    for (const auto dp : this->dps)
+    {
+        bool seen = false;
+        for (const auto p : registry)
+        {
+            if (p->get_period_id() == dp->get_period_id())
+            {
+                seen = true;
+                break;
+            }
+        }
+
+        if (!seen)
+            registry.push_back(dp);
+    }
+
+    // ---- G5 TIME CONTRACT AUDIT (format frozen by F03b review) ----
+    std::cout << "==== G5 TIME CONTRACT AUDIT ====\n" << std::fixed << std::setprecision(6);
+    for (const auto& name : referenced)
+    {
+        double total = 0;
+        double covered = 0;
+        for (const auto& b : lib[name])
+        {
+            total += b.weight;
+            auto folded = b.start_min >= 1440 ? b.start_min - 1440 : b.start_min;
+            for (const auto p : registry)
+            {
+                if (folded >= p->get_start_time() && folded < p->get_end_time())
+                {
+                    covered += b.weight;
+                    break;
+                }
+            }
+        }
+
+        std::cout << "profile " << name << "  full-day sum = " << total
+                  << "  uncovered mass (outside all periods) = " << total - covered << '\n';
+    }
+
+    static constexpr double s_r_floor = 1e-3;
+    for (const auto p : registry)
+    {
+        std::cout << "Period: P" << p->get_period_id() << " / " << p->get_period()
+                  << "   Window: " << format_clock(p->get_start_time()) << '-'
+                  << format_clock(p->get_end_time())
+                  << "   active: " << (p->is_active() ? "yes" : "no") << '\n';
+
+        for (const auto& b : this->profile_bindings)
+        {
+            if (b.period_id != p->get_period_id())
+                continue;
+
+            std::cout << "  Agent: " << (b.agent_type.empty() ? "(all)"s : b.agent_type)
+                      << "  Profile: " << b.profile_id << '\n';
+
+            // clip the 24h profile to the half-open window by folded bin start
+            std::vector<DepartureProfile::Bin> cond;
+            double s_r = 0;
+            for (const auto& bin : lib[b.profile_id])
+            {
+                auto folded = bin.start_min >= 1440 ? bin.start_min - 1440 : bin.start_min;
+                if (folded >= p->get_start_time() && folded < p->get_end_time())
+                {
+                    cond.push_back({folded, bin.width_min, bin.weight});
+                    s_r += bin.weight;
+                }
+            }
+
+            std::cout << "    Raw profile mass in window   S_r = " << s_r << '\n';
+            if (s_r < s_r_floor)
+                throw std::invalid_argument{
+                    "profile " + b.profile_id + " has essentially no mass ("
+                    + std::to_string(s_r) + " < 1e-3) inside demand period "
+                    + p->get_period() + "; refusing to renormalize noise"
+                };
+
+            std::sort(cond.begin(), cond.end(),
+                      [](const DepartureProfile::Bin& l, const DepartureProfile::Bin& r) {
+                          return l.start_min < r.start_min;
+                      });
+
+            double cond_sum = 0;
+            for (auto& bin : cond)
+            {
+                bin.weight /= s_r;
+                cond_sum += bin.weight;
+            }
+
+            // loaded demand for this (period, agent) across its DemandPeriod rows
+            double demand = 0;
+            bool loaded = false;
+            for (const auto dp : this->dps)
+            {
+                if (dp->get_period_id() != p->get_period_id())
+                    continue;
+
+                if (!b.agent_type.empty()
+                    && dp->get_demands().front().get_agent_type_name() != b.agent_type)
+                    continue;
+
+                auto it = this->demand_totals.find(dp->get_no());
+                if (it != this->demand_totals.end())
+                {
+                    demand += it->second;
+                    loaded = true;
+                }
+            }
+
+            std::cout << "    Conditional weight sum           = " << cond_sum << '\n';
+            if (loaded)
+                std::cout << "    Period demand                    = " << demand << '\n'
+                          << "    Allocated demand                 = " << demand * cond_sum << '\n';
+            else
+                std::cout << "    Period demand                    = n/a (not loaded)\n";
+
+            std::cout << "    Earliest departure bin           = "
+                      << format_clock(cond.front().start_min) << '\n'
+                      << "    Latest departure bin start       = "
+                      << format_clock(cond.back().start_min)
+                      << "  (< " << format_clock(p->get_end_time()) << ": "
+                      << (cond.back().start_min < p->get_end_time() ? "yes" : "NO - VIOLATION")
+                      << ")\n";
+
+            this->dep_profiles.push_back(
+                new DepartureProfile{b.profile_id, b.period_id, b.agent_type, std::move(cond), s_r}
+            );
+        }
+    }
+
+    std::cout << this->dep_profiles.size()
+              << " conditional departure distributions are loaded and validated\n";
+    std::cout.unsetf(std::ios_base::fixed);
+    std::cout << std::setprecision(6);
 }
 
 void NetworkHandle::read_nodes()
@@ -1269,9 +1408,16 @@ void NetworkHandle::read_settings_yml(const std::string& file_path)
         auto period = dp["period"].as<std::string>();
         auto time_period = dp["time_period"].as<std::string>();
 
-        // F03: optional per-period departure profile binding
-        auto dep_profile_name = dp["departure_profile"]
-                              ? dp["departure_profile"].as<std::string>() : ""s;
+        // F03c: bindings moved to the top-level departure_profile_binding block
+        if (dp["departure_profile"])
+            throw std::invalid_argument{
+                "demand_period." + period + ".departure_profile is no longer supported; "
+                "declare the binding in the top-level departure_profile_binding block "
+                "(period_id, agent_type, profile_id)"
+            };
+
+        // F03c: registry rows stay loaded when inactive; demand is not read
+        auto active = dp["active"] ? dp["active"].as<bool>() : true;
 
         // explicit computational key; falls back to the 1-based entry position
         ++entry_no;
@@ -1325,8 +1471,12 @@ void NetworkHandle::read_settings_yml(const std::string& file_path)
                     // do nothing
                 }
 
+                // copies: the ctor moves the strings, and one settings entry
+                // may spawn one DemandPeriod per demand file
+                auto period_copy = period;
+                auto time_period_copy = time_period;
                 const auto dp_ = new DemandPeriod{
-                    j++, period_id, period, time_period, dep_profile_name,
+                    j++, period_id, active, period_copy, time_period_copy,
                     Demand{k++, file_name, at}, se
                 };
 
@@ -1341,6 +1491,56 @@ void NetworkHandle::read_settings_yml(const std::string& file_path)
             {
                 std::cerr << at_name << " is not existing in settings.yml\n";
             }
+        }
+    }
+
+    // F03c: period x agent type x profile binding table (the only join
+    // between the demand-period registry and the 24h profile library)
+    const auto& dpb = settings["departure_profile_binding"];
+    if (dpb)
+    {
+        for (const auto& b : dpb)
+        {
+            if (!b["period_id"] || !b["profile_id"])
+                throw std::invalid_argument{
+                    "each departure_profile_binding entry requires period_id and profile_id"
+                };
+
+            auto b_pid = parse_period_id_str(b["period_id"].as<std::string>());
+            bool known = false;
+            for (auto id : period_ids)
+            {
+                if (id == b_pid)
+                {
+                    known = true;
+                    break;
+                }
+            }
+
+            if (!known)
+                throw std::invalid_argument{
+                    "departure_profile_binding references unknown period_id "
+                    + std::to_string(b_pid)
+                };
+
+            auto b_at = b["agent_type"] ? b["agent_type"].as<std::string>() : ""s;
+            if (!b_at.empty())
+            {
+                try
+                {
+                    this->get_agent_type(b_at);
+                }
+                catch (const std::exception&)
+                {
+                    throw std::invalid_argument{
+                        "departure_profile_binding references unknown agent_type " + b_at
+                    };
+                }
+            }
+
+            this->profile_bindings.push_back(
+                ProfileBinding{b_pid, b_at, b["profile_id"].as<std::string>()}
+            );
         }
     }
 
