@@ -1,0 +1,30 @@
+{
+  "case": "G4_corridor_ramp",
+  "reference": "corridor conservation identity, gate-reference 'Corridor conservation (Test 04 onward)'",
+  "tolerance_default": 1e-6,
+  "conservation": {
+    "identity": "CA_{i+1}(t) = CD_i(t) + R_on(t) - R_off(t), per mainline junction, per interval",
+    "tolerance": 2e-9,
+    "note": "fails LEGITIMATELY if ramps are undeclared in corridor.csv, and that failure is indistinguishable from a DNL bug - which is why ramps are mandatory in the contract",
+    "min_rows_with_R_on": 30,
+    "min_rows_with_R_off": 30
+  },
+  "episode_assertions": [
+    {"link": "M3", "T0": "07:19:00", "T2": "08:33:00", "T3": "09:13:00", "peak_queue_pce": 315.0,
+     "note": "the corridor bottleneck; queue forms in P1, persists across BOTH period boundaries, clears in P3"},
+    {"link": "M2", "T0": "07:33:00", "T2": "07:47:00", "T3": "07:49:00", "peak_queue_pce": 10.0}
+  ],
+  "onset_dispersion": {"min_distinct_onsets": 2,
+    "note": "M2 onset 07:33 vs M3 onset 07:19 - distinct by construction; report std of onset across corridor links as the diagnostic metric"},
+  "queue_continuity": {"boundaries": ["08:00:00", "09:00:00"],
+    "cells": [
+      {"link": "M3", "time": "08:00:00", "column": "exit_queue_pce", "expect": 159.0},
+      {"link": "M3", "time": "09:00:00", "column": "exit_queue_pce", "expect": 281.5}
+    ]},
+  "corridor_outputs": {
+    "requires": ["corridor_time_performance_gold.csv", "corridor_conservation_gold.csv"],
+    "note": "corridor_time_performance carries BOTH model_travel_time_sec (experienced, composed through E_a) AND model_travel_time_instantaneous_sec (naive snapshot sum), clearly labelled - compare the experienced one to INRIX"
+  },
+  "vehicle_assertions": {"total_vehicles": 2100, "min_cross_period_rows": 1,
+    "all_trips_complete_within_clearance_buffer": true}
+}

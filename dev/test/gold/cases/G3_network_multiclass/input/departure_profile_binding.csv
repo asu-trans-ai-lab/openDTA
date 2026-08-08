@@ -1,0 +1,7 @@
+scope,scope_key,agent_type,period_id,profile_id
+route,R1,,P1,P1_R1
+route,R2,,P1,P1_R2
+route,R1,,P2,P2_R1
+route,R2,,P2,P2_R2
+period,P1,,P1,UNIF_P1
+period,P2,,P2,UNIF_P2

@@ -1,0 +1,623 @@
+{
+  "dataset_id": "GOLD-DTA-GATES-v2",
+  "status": "PASS",
+  "cases": 5,
+  "assertion_metrics": 161,
+  "files": [
+    {
+      "path": "CHANGELOG_v1_to_v2.md",
+      "sha256": "bdc605fe05b58fb07c8341d22e1ba0f3e65fcaa9fbea481cd73487372dae54eb",
+      "bytes": 4815
+    },
+    {
+      "path": "README.md",
+      "sha256": "7928fd70ccfadf95d2ac5b7dab9a1be1e1b32d9ab5d33fd7b52a4fe272098766",
+      "bytes": 5919
+    },
+    {
+      "path": "cases/G1_single_link_two_period/README.md",
+      "sha256": "78747a3bc10650391659594299e7f38c74bc17dedc556f359b60fe3cdfcd41e5",
+      "bytes": 642
+    },
+    {
+      "path": "cases/G1_single_link_two_period/assertions.json",
+      "sha256": "15d210cfd924fd32c74c3abcc574d9b3b85f49d11aa77fb00d3a7816e1b83cb4",
+      "bytes": 1704
+    },
+    {
+      "path": "cases/G1_single_link_two_period/gold_expected/congestion_episode_gold.csv",
+      "sha256": "b56a3f1865ec0863a761299b000d239c22968c72825613f61d6222c2f3f73e5b",
+      "bytes": 141
+    },
+    {
+      "path": "cases/G1_single_link_two_period/gold_expected/corridor_time_performance_gold.csv",
+      "sha256": "0120fdc084326d46c26734a73fd509f9660bc1156d00337b4549e35a9d0aad6e",
+      "bytes": 1388
+    },
+    {
+      "path": "cases/G1_single_link_two_period/gold_expected/link_time_performance.csv",
+      "sha256": "7ea856e7c1a6238e5dfe58058091113d03f8fd1f1679be488d4a0cf42dd47fd4",
+      "bytes": 7226
+    },
+    {
+      "path": "cases/G1_single_link_two_period/gold_expected/link_time_performance_minute.csv",
+      "sha256": "9ca6ad1f9b5d8ac546dc0465255b0081dacb47f0d7f33d64105f7c53b9cbea64",
+      "bytes": 33522
+    },
+    {
+      "path": "cases/G1_single_link_two_period/gold_expected/period_boundary_audit.csv",
+      "sha256": "5a3e8d1b2cd146e3b6e962b4d1460476e92a363d5f755019a977ab3ce68b2154",
+      "bytes": 236
+    },
+    {
+      "path": "cases/G1_single_link_two_period/gold_expected/period_performance_gold.csv",
+      "sha256": "460cd986a18894a1cff65810030c7533b208c08bb301dd4abc0b0ac7c6b61879",
+      "bytes": 260
+    },
+    {
+      "path": "cases/G1_single_link_two_period/input/columns.csv",
+      "sha256": "aa1e3e210d199e8b95bd755eef49f0329098b813a7bf1b830d59070d2204fc93",
+      "bytes": 128
+    },
+    {
+      "path": "cases/G1_single_link_two_period/input/config.json",
+      "sha256": "2beef266d121d8e6d9c010fd5718712e4ba8b3f5b18b2fb25367d0dda74f81a8",
+      "bytes": 796
+    },
+    {
+      "path": "cases/G1_single_link_two_period/input/corridor.csv",
+      "sha256": "476eb2f17906684502a66296094ab59bd10a06a118a30e4b3d12dec4d643e6c5",
+      "bytes": 113
+    },
+    {
+      "path": "cases/G1_single_link_two_period/input/demand.csv",
+      "sha256": "0b289f076d8d19a14c9e2f57dede5e015a9936caf0163f89d5a49a59f294fd83",
+      "bytes": 112
+    },
+    {
+      "path": "cases/G1_single_link_two_period/input/demand_period.csv",
+      "sha256": "153e76fab24e018aa59988e8f13ae8b4c8e518c646c1928d35f13e8ec20e1e75",
+      "bytes": 157
+    },
+    {
+      "path": "cases/G1_single_link_two_period/input/departure_profile.csv",
+      "sha256": "d36ef88d2bbd230ced8293a0bdf55a94de6b6d230286568b7e08a3c008e5f370",
+      "bytes": 302
+    },
+    {
+      "path": "cases/G1_single_link_two_period/input/link.csv",
+      "sha256": "4d0e539823294b51d737501286807a611dcfe2bfb98d3ab135ceec51a0cc75d2",
+      "bytes": 64
+    },
+    {
+      "path": "cases/G1_single_link_two_period/input/link_period.csv",
+      "sha256": "b33e87b7940e4e38245284e3708d413f6d8034bf44a8e696ef396c4b95b25fc1",
+      "bytes": 428
+    },
+    {
+      "path": "cases/G1_single_link_two_period/input/node.csv",
+      "sha256": "79304bd6f78c041cf4dda81965ef9eb1c6b5e2bb5215b4ea98a37cfec70b7c03",
+      "bytes": 28
+    },
+    {
+      "path": "cases/G1_single_link_two_period/input/route.csv",
+      "sha256": "10363282305a2e225abf26102003af5a7e5023adf7f3580f1153b86433fc9861",
+      "bytes": 75
+    },
+    {
+      "path": "cases/G1_single_link_two_period/input/vehicle_class.csv",
+      "sha256": "517c38a92630e533483cb1501bacc6e9f72b59cc3a53ac989f4b4fa786736598",
+      "bytes": 30
+    },
+    {
+      "path": "cases/G2_two_link_tandem/README.md",
+      "sha256": "f7bcb84e9a82a29ee5f06a5f0fa0457357e0130cd0915f2faab6a1fdb3933c1d",
+      "bytes": 684
+    },
+    {
+      "path": "cases/G2_two_link_tandem/assertions.json",
+      "sha256": "768612259e01b7997fd9a40d46dbb5d80f4b627e3560c437d6cab3eed58402f0",
+      "bytes": 1572
+    },
+    {
+      "path": "cases/G2_two_link_tandem/gold_expected/congestion_episode_gold.csv",
+      "sha256": "265958376ac535da59429bcf6a46d958678cb26697d6ca28509e3391a9ef7e9c",
+      "bytes": 203
+    },
+    {
+      "path": "cases/G2_two_link_tandem/gold_expected/corridor_conservation_gold.csv",
+      "sha256": "76c61b27340c1c297efd0872029be079b09ed396b1f214d4957f21ff99acc77d",
+      "bytes": 1713
+    },
+    {
+      "path": "cases/G2_two_link_tandem/gold_expected/corridor_time_performance_gold.csv",
+      "sha256": "5d36e21622e34ca63d48d809c9c77ed7adb8ef9b239388a1c0cb72766c648d64",
+      "bytes": 1482
+    },
+    {
+      "path": "cases/G2_two_link_tandem/gold_expected/link_time_performance.csv",
+      "sha256": "a544c4661d1d70a70466f234ea07de7e23bf763115f8f743c34940cc0abcd778",
+      "bytes": 10731
+    },
+    {
+      "path": "cases/G2_two_link_tandem/gold_expected/link_time_performance_minute.csv",
+      "sha256": "06c7c8d16cb5226b58a99c299de70848b7545eac7b5458e67eaf9dfd67d00d73",
+      "bytes": 49522
+    },
+    {
+      "path": "cases/G2_two_link_tandem/gold_expected/period_boundary_audit.csv",
+      "sha256": "fadedca6da7181cb19d7a6ad59a018c460da4645548fb5f7a7d84b63e1af85b6",
+      "bytes": 298
+    },
+    {
+      "path": "cases/G2_two_link_tandem/gold_expected/period_performance_gold.csv",
+      "sha256": "e09506baef10b990e9fbec5ea888d6d61309fcb19b2ebd74ead1d7c34ad532ab",
+      "bytes": 380
+    },
+    {
+      "path": "cases/G2_two_link_tandem/input/columns.csv",
+      "sha256": "6683f05a0acf4cc89a8671d0206d654ebf89dced48371c31f5ef70cde615870c",
+      "bytes": 119
+    },
+    {
+      "path": "cases/G2_two_link_tandem/input/config.json",
+      "sha256": "1fd5e9c7e0737d43494d2614368e5708a4f27dce863be45cb7aa502e5c090d91",
+      "bytes": 839
+    },
+    {
+      "path": "cases/G2_two_link_tandem/input/corridor.csv",
+      "sha256": "f8e424290aeec752adc50a41bae84b52a7059aff3b8347d5dcec110b67315637",
+      "bytes": 140
+    },
+    {
+      "path": "cases/G2_two_link_tandem/input/demand.csv",
+      "sha256": "27caf9e9b024fcefbdca6108540893d95f828f6812f7887e38e7a7a2bfc4d7d4",
+      "bytes": 103
+    },
+    {
+      "path": "cases/G2_two_link_tandem/input/demand_period.csv",
+      "sha256": "153e76fab24e018aa59988e8f13ae8b4c8e518c646c1928d35f13e8ec20e1e75",
+      "bytes": 157
+    },
+    {
+      "path": "cases/G2_two_link_tandem/input/departure_profile.csv",
+      "sha256": "52bb0907b720241fb780e14e6dc84eed097a2fbdaeb0c48b3b2520d08c603f67",
+      "bytes": 247
+    },
+    {
+      "path": "cases/G2_two_link_tandem/input/link.csv",
+      "sha256": "1be84f24350067f88e35cbdb6e8e7a1a2e8b3480c84216c05461b921b6ad19ba",
+      "bytes": 77
+    },
+    {
+      "path": "cases/G2_two_link_tandem/input/link_period.csv",
+      "sha256": "3fcd1b6f80cda6f95c7383c850eb24a9390d2db630f96d6a2ef73d163c4546f7",
+      "bytes": 710
+    },
+    {
+      "path": "cases/G2_two_link_tandem/input/node.csv",
+      "sha256": "4963f9cca39d36ef8f0b8e5ff762d35adc3097389ecd3bd3ad3213ac90e5aedc",
+      "bytes": 31
+    },
+    {
+      "path": "cases/G2_two_link_tandem/input/route.csv",
+      "sha256": "31e0a6745c4e22d2c7e57cbaa8154a25188bb5ded30157cf7b971024cae15e13",
+      "bytes": 78
+    },
+    {
+      "path": "cases/G2_two_link_tandem/input/vehicle_class.csv",
+      "sha256": "517c38a92630e533483cb1501bacc6e9f72b59cc3a53ac989f4b4fa786736598",
+      "bytes": 30
+    },
+    {
+      "path": "cases/G2b_tandem_period_boundary/README.md",
+      "sha256": "366d785745ad83fcc70e8b429aca76ab5fe850680715d2125802917f5d068d98",
+      "bytes": 677
+    },
+    {
+      "path": "cases/G2b_tandem_period_boundary/assertions.json",
+      "sha256": "d7b7f9900b8dbd38d000ff166e9ce52d825c5ecf99e75d8cf10bfb0a5f3400f3",
+      "bytes": 1636
+    },
+    {
+      "path": "cases/G2b_tandem_period_boundary/gold_expected/congestion_episode_gold.csv",
+      "sha256": "88cff53e233c6a414ad65a9f0a283eba6bb1e33a5077a82bb77a88203cd0291a",
+      "bytes": 203
+    },
+    {
+      "path": "cases/G2b_tandem_period_boundary/gold_expected/corridor_conservation_gold.csv",
+      "sha256": "0e97bba986b2a37e763858353adccb5db514d5db8629c3634ae6f27cdd982c5b",
+      "bytes": 1713
+    },
+    {
+      "path": "cases/G2b_tandem_period_boundary/gold_expected/corridor_time_performance_gold.csv",
+      "sha256": "8162ee740a3e4bb2801035ca5a99fc26ad1a9393875031cbebe0e7c78f9c2f2a",
+      "bytes": 1500
+    },
+    {
+      "path": "cases/G2b_tandem_period_boundary/gold_expected/link_time_performance.csv",
+      "sha256": "cad072e0038c271f64a3757703902b0c9f0ad648d03d4bb3567324e75a751c62",
+      "bytes": 10782
+    },
+    {
+      "path": "cases/G2b_tandem_period_boundary/gold_expected/link_time_performance_minute.csv",
+      "sha256": "28f9774bfc0c54995d1ad2a75754216e66d916c3fa60ab0ef6adedc8e0a9e22d",
+      "bytes": 50094
+    },
+    {
+      "path": "cases/G2b_tandem_period_boundary/gold_expected/period_boundary_audit.csv",
+      "sha256": "d8d109e1447eeb397fe4eb18f95ec904074fa690bace634ad31d15eb397581ed",
+      "bytes": 306
+    },
+    {
+      "path": "cases/G2b_tandem_period_boundary/gold_expected/period_performance_gold.csv",
+      "sha256": "a77d4998d8f5e294360ce3b82f2d0bf191ff684007a14dad9c9982acb087bc0a",
+      "bytes": 381
+    },
+    {
+      "path": "cases/G2b_tandem_period_boundary/input/columns.csv",
+      "sha256": "9e2669da0deca9ccdb1d7bedee6cf2530da24e099a6633e9d90062d40cc86286",
+      "bytes": 118
+    },
+    {
+      "path": "cases/G2b_tandem_period_boundary/input/config.json",
+      "sha256": "b931d224cda7f4017c6c69fd06d1a9b94d8bef434fb4df31e3f30521e5da9059",
+      "bytes": 826
+    },
+    {
+      "path": "cases/G2b_tandem_period_boundary/input/corridor.csv",
+      "sha256": "f8e424290aeec752adc50a41bae84b52a7059aff3b8347d5dcec110b67315637",
+      "bytes": 140
+    },
+    {
+      "path": "cases/G2b_tandem_period_boundary/input/demand.csv",
+      "sha256": "a610033423781215a59961d32e5d00fbf00c1537c1925e5b697a0c68b578d04f",
+      "bytes": 102
+    },
+    {
+      "path": "cases/G2b_tandem_period_boundary/input/demand_period.csv",
+      "sha256": "5a19c3ed439ac2e9a6fbdb258c17a29d00fd1b2e6b99bcf1aff4ee047dd59b20",
+      "bytes": 157
+    },
+    {
+      "path": "cases/G2b_tandem_period_boundary/input/departure_profile.csv",
+      "sha256": "69c81db83e7a9200deb5fd1a22781973f7b54a86b633cf9b960de2a27d269890",
+      "bytes": 249
+    },
+    {
+      "path": "cases/G2b_tandem_period_boundary/input/link.csv",
+      "sha256": "1be84f24350067f88e35cbdb6e8e7a1a2e8b3480c84216c05461b921b6ad19ba",
+      "bytes": 77
+    },
+    {
+      "path": "cases/G2b_tandem_period_boundary/input/link_period.csv",
+      "sha256": "78f43e6707c86f40d788a89b2459149fac48fdc7f96582a1650bb95e409f72eb",
+      "bytes": 722
+    },
+    {
+      "path": "cases/G2b_tandem_period_boundary/input/node.csv",
+      "sha256": "4963f9cca39d36ef8f0b8e5ff762d35adc3097389ecd3bd3ad3213ac90e5aedc",
+      "bytes": 31
+    },
+    {
+      "path": "cases/G2b_tandem_period_boundary/input/route.csv",
+      "sha256": "31e0a6745c4e22d2c7e57cbaa8154a25188bb5ded30157cf7b971024cae15e13",
+      "bytes": 78
+    },
+    {
+      "path": "cases/G2b_tandem_period_boundary/input/vehicle_class.csv",
+      "sha256": "517c38a92630e533483cb1501bacc6e9f72b59cc3a53ac989f4b4fa786736598",
+      "bytes": 30
+    },
+    {
+      "path": "cases/G3_network_multiclass/README.md",
+      "sha256": "24f34da7cb8bc6050950fe8a7d2cb1e4f0c6296ce6808d07aaf3df587a6246ed",
+      "bytes": 763
+    },
+    {
+      "path": "cases/G3_network_multiclass/assertions.json",
+      "sha256": "f54e0a9730a61cbf6e634f35fbe2d95f100b6f1a33b947999be42a93a87bbb0b",
+      "bytes": 2211
+    },
+    {
+      "path": "cases/G3_network_multiclass/gold_expected/congestion_episode_gold.csv",
+      "sha256": "5fb0b0ab023386664fd56b311197694cfdb88949862d6dcfdbfe2ae7cafe2ceb",
+      "bytes": 256
+    },
+    {
+      "path": "cases/G3_network_multiclass/gold_expected/corridor_conservation_gold.csv",
+      "sha256": "c38e376808c9725ef756d2299087544505379dda42fb0263dc3ca8b9db2d0917",
+      "bytes": 7871
+    },
+    {
+      "path": "cases/G3_network_multiclass/gold_expected/corridor_time_performance_gold.csv",
+      "sha256": "ba1c420c51c2882a650e3fb78c233aac47f110c05c7af9d34a62f19bf9f42cfa",
+      "bytes": 3289
+    },
+    {
+      "path": "cases/G3_network_multiclass/gold_expected/link_time_performance.csv",
+      "sha256": "f485c8c5e48bdc9e63de254a3cee5cd2e2d5393be63b488e12f7f0ef96927c99",
+      "bytes": 28072
+    },
+    {
+      "path": "cases/G3_network_multiclass/gold_expected/link_time_performance_minute.csv",
+      "sha256": "ae3e4c4a06592d7d342056d2b19a04eec42bcee59b7b33859b9b0e83cf881e96",
+      "bytes": 132326
+    },
+    {
+      "path": "cases/G3_network_multiclass/gold_expected/period_boundary_audit.csv",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "cases/G3_network_multiclass/gold_expected/period_performance_gold.csv",
+      "sha256": "a6bf2cb5cf60cd8a0566846a0fb83a080f49eeb2e18e4d1a649de5504d1c6aaf",
+      "bytes": 759
+    },
+    {
+      "path": "cases/G3_network_multiclass/gold_expected/reconciliation_gold.csv",
+      "sha256": "f190d4150642ef143c32cab91838eef1bc0adafc40c7056aaaef2cbf9995c917",
+      "bytes": 333
+    },
+    {
+      "path": "cases/G3_network_multiclass/gold_expected/vehicle_gold.csv",
+      "sha256": "42bdfb7bac15b57d5c782c50930b3eb07301d0ba77c1cbccfca1b2be404f7068",
+      "bytes": 82310
+    },
+    {
+      "path": "cases/G3_network_multiclass/gold_expected/vehicle_link_trajectory_gold.csv",
+      "sha256": "1ccea326dbd05f7a09f313a091aa2515e3d00d66ca5c895d092f37a8cd1af0bb",
+      "bytes": 522153
+    },
+    {
+      "path": "cases/G3_network_multiclass/gold_expected/vehicle_trajectory_gold.csv",
+      "sha256": "fc1a8587f9d06df829afd6972847d9f8083b9b592f1a6f20b20d10fd2d7c14dd",
+      "bytes": 92350
+    },
+    {
+      "path": "cases/G3_network_multiclass/input/columns.csv",
+      "sha256": "22b99bd1f7e9e5eb48ab37e6a9280e7291e836063a3756aa8872215d7080fc63",
+      "bytes": 196
+    },
+    {
+      "path": "cases/G3_network_multiclass/input/config.json",
+      "sha256": "7c312e01941d7ec927dbbf43340ffb06eb7409ab9654398fb5964f2dbc391669",
+      "bytes": 1195
+    },
+    {
+      "path": "cases/G3_network_multiclass/input/corridor.csv",
+      "sha256": "579eece156fb99c49b14ec2c83c21e33554591a7d44449ebef238899c922ce92",
+      "bytes": 250
+    },
+    {
+      "path": "cases/G3_network_multiclass/input/demand.csv",
+      "sha256": "9d5821c17559a9a07ef2583ae9d3bb1f5e31c888379c999a81061100ef66a7ae",
+      "bytes": 149
+    },
+    {
+      "path": "cases/G3_network_multiclass/input/demand_period.csv",
+      "sha256": "18f634eef58489d2ce6fe317d6c407a0ae48805124cc77fbc11d547d1cb66296",
+      "bytes": 157
+    },
+    {
+      "path": "cases/G3_network_multiclass/input/departure_profile.csv",
+      "sha256": "391db4dc22582bd631e95d85411eac670a36d5547fd33246da2c473959ba692c",
+      "bytes": 3427
+    },
+    {
+      "path": "cases/G3_network_multiclass/input/departure_profile_binding.csv",
+      "sha256": "533651c93a0c1aa3a3a1fa66829ed804cf3be0138f2d42dd2769a12bd0f2da62",
+      "bytes": 168
+    },
+    {
+      "path": "cases/G3_network_multiclass/input/link.csv",
+      "sha256": "199a005c0fcf4cc0c5d6827a878fbdc3391229c4eabca6095f0c2b6d270993bb",
+      "bytes": 116
+    },
+    {
+      "path": "cases/G3_network_multiclass/input/link_period.csv",
+      "sha256": "901c06e28da32aed67270ae065ac836dadb21e633a74217bb33912b07145f84e",
+      "bytes": 1351
+    },
+    {
+      "path": "cases/G3_network_multiclass/input/node.csv",
+      "sha256": "d1224bbc3e60a25a6c714499a95b8f1da7b5f5815cbbf117b682874af873635d",
+      "bytes": 37
+    },
+    {
+      "path": "cases/G3_network_multiclass/input/route.csv",
+      "sha256": "4eaaba9d1693b1b8214e4b6ca87e03fd58ba8fcf98f9bd78774d70f2384fc345",
+      "bytes": 107
+    },
+    {
+      "path": "cases/G3_network_multiclass/input/vehicle_class.csv",
+      "sha256": "d8354e7eae00a3d36b80c8c1799f4c8b7a6401b3c7cb680607cab09ca50b0356",
+      "bytes": 40
+    },
+    {
+      "path": "cases/G3_network_multiclass/negative_cases/README.md",
+      "sha256": "c393f43e277d2a999f9510a5171c918e8d985c4c674d842f425f0d98986c1fb8",
+      "bytes": 913
+    },
+    {
+      "path": "cases/G3_network_multiclass/negative_cases/columns_illegal_truck.csv",
+      "sha256": "c1bbf023ef3eae277949b17d625be8b05032ecdd49c448b6efe19b8bdf6f8ced",
+      "bytes": 217
+    },
+    {
+      "path": "cases/G3_network_multiclass/negative_cases/vehicle_truck_boundary_entry.csv",
+      "sha256": "2db657d38c8be9f51fb83399055833e6ffffcbb8363060b3ca3f25ca3ea708cc",
+      "bytes": 111
+    },
+    {
+      "path": "cases/G4_corridor_ramp/README.md",
+      "sha256": "c90edd22bcd3ed237e6c722d7c41d3848e6e8030caf200c19e5527419b6c42d9",
+      "bytes": 906
+    },
+    {
+      "path": "cases/G4_corridor_ramp/assertions.json",
+      "sha256": "bae13de92df8f4b4ba2f500f9256a7ef57b8ec30824ab146d9db1676fc9b299e",
+      "bytes": 1828
+    },
+    {
+      "path": "cases/G4_corridor_ramp/gold_expected/congestion_episode_gold.csv",
+      "sha256": "77d058bad4e97d7b3a08583f9dfd04101d31109f5cdd3885cc051400cfe89e41",
+      "bytes": 266
+    },
+    {
+      "path": "cases/G4_corridor_ramp/gold_expected/corridor_conservation_gold.csv",
+      "sha256": "2fe139dad4a9b8e4f787fed8278df5eec98c8879289c06b4863992782b7e534b",
+      "bytes": 7072
+    },
+    {
+      "path": "cases/G4_corridor_ramp/gold_expected/corridor_time_performance_gold.csv",
+      "sha256": "2a8fc333c4b73e6e522e5bd0e378cb4841c2b34c1d043a37cf1966c0f797a8ed",
+      "bytes": 1687
+    },
+    {
+      "path": "cases/G4_corridor_ramp/gold_expected/link_time_performance.csv",
+      "sha256": "ffccb508a322f01f918f48245464427cf5e8a289482a53b557abb98a4eb45d99",
+      "bytes": 38320
+    },
+    {
+      "path": "cases/G4_corridor_ramp/gold_expected/link_time_performance_minute.csv",
+      "sha256": "983b8cc8780d1299186e0940782682199ca5fe5c7ebdad16e7ae0a87ae92b90a",
+      "bytes": 182470
+    },
+    {
+      "path": "cases/G4_corridor_ramp/gold_expected/period_boundary_audit.csv",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "cases/G4_corridor_ramp/gold_expected/period_performance_gold.csv",
+      "sha256": "c2071306dce890a762fd1905294d0edb34b6ee8c107b21fa31d1e674bf8e579e",
+      "bytes": 937
+    },
+    {
+      "path": "cases/G4_corridor_ramp/gold_expected/reconciliation_gold.csv",
+      "sha256": "db0bca0fd41c31bd17d7e2c25bafeed74d7905b9e2958996c6cc3fb4c55a7502",
+      "bytes": 349
+    },
+    {
+      "path": "cases/G4_corridor_ramp/gold_expected/vehicle_gold.csv",
+      "sha256": "b0ad380e276e7cc26bcc79402915027ba5fba34129208331a4bcbb46ea837083",
+      "bytes": 105110
+    },
+    {
+      "path": "cases/G4_corridor_ramp/gold_expected/vehicle_link_trajectory_gold.csv",
+      "sha256": "d82cb92c0f4a86af4cc6d84d5e424600e84b497e8967ce1329927f4e1cca2d69",
+      "bytes": 756825
+    },
+    {
+      "path": "cases/G4_corridor_ramp/gold_expected/vehicle_trajectory_gold.csv",
+      "sha256": "ae953d61518a0bd021a8f1333223d092b4f621ab4082b96c438e45e99a8b07a7",
+      "bytes": 104561
+    },
+    {
+      "path": "cases/G4_corridor_ramp/input/columns.csv",
+      "sha256": "87ad1efd334a9075b2a3e10f69b21450a36f6df4aa43c374768f0c32ce1b7da9",
+      "bytes": 260
+    },
+    {
+      "path": "cases/G4_corridor_ramp/input/config.json",
+      "sha256": "31779644f20759048f6927cfc0c0b033b3a3ec45674f8d1f1cef1e3780a5d729",
+      "bytes": 1100
+    },
+    {
+      "path": "cases/G4_corridor_ramp/input/corridor.csv",
+      "sha256": "ceac6c9323aee7ad1b679cbee9463e61d39cb32b24fbeba6a2ab483a42cc2482",
+      "bytes": 257
+    },
+    {
+      "path": "cases/G4_corridor_ramp/input/demand.csv",
+      "sha256": "ab7bee04ebf980ece94fc5b6092a342014508f734371d993d1d180a7fffc41d0",
+      "bytes": 190
+    },
+    {
+      "path": "cases/G4_corridor_ramp/input/demand_period.csv",
+      "sha256": "18f634eef58489d2ce6fe317d6c407a0ae48805124cc77fbc11d547d1cb66296",
+      "bytes": 157
+    },
+    {
+      "path": "cases/G4_corridor_ramp/input/departure_profile.csv",
+      "sha256": "37ea944939c1539f4746d17b4b40a3563737581e7fdcb3c86be81fb8afceb780",
+      "bytes": 742
+    },
+    {
+      "path": "cases/G4_corridor_ramp/input/link.csv",
+      "sha256": "cdcb159be8b0ec1715d875b09485b0c43de04c035189a5ae3c069fed17fc446f",
+      "bytes": 143
+    },
+    {
+      "path": "cases/G4_corridor_ramp/input/link_period.csv",
+      "sha256": "cfd1cff05beb204a53ed341c57d774eb05a8987eeeea356e3e669d27972195a8",
+      "bytes": 1576
+    },
+    {
+      "path": "cases/G4_corridor_ramp/input/node.csv",
+      "sha256": "0739f702d02e5f6cd45caa225a86fa67762312858315288326343b052b6b7112",
+      "bytes": 56
+    },
+    {
+      "path": "cases/G4_corridor_ramp/input/route.csv",
+      "sha256": "bbcb787cf8ad11fe4994220b6258513eecf79319bbb40589bd316eff9c269d18",
+      "bytes": 153
+    },
+    {
+      "path": "cases/G4_corridor_ramp/input/vehicle_class.csv",
+      "sha256": "517c38a92630e533483cb1501bacc6e9f72b59cc3a53ac989f4b4fa786736598",
+      "bytes": 30
+    },
+    {
+      "path": "docs/CONSENSUS_BASELINE.md",
+      "sha256": "2acfcb91b37b84ed7d0f2c8849611d0729594d73a7e791967f5e7958fccecb45",
+      "bytes": 9238
+    },
+    {
+      "path": "schema/gold_output_schema.json",
+      "sha256": "adda2a294a109a7950e3bb1b1e062ece48eafb20dd0809803826b98bc4c337ff",
+      "bytes": 4642
+    },
+    {
+      "path": "schema/input_schema_v1_reference.json",
+      "sha256": "4735be5339fb327c9261c883f17932885e0ec2f82023b144e21806869e62f342",
+      "bytes": 4642
+    },
+    {
+      "path": "tools/__pycache__/gold_solver.cpython-312.pyc",
+      "sha256": "e96f0f9306d97a260109526fa86ebea574c87c7df12f04d9daa45a4abf49c980",
+      "bytes": 32794
+    },
+    {
+      "path": "tools/__pycache__/vehicle_gold.cpython-312.pyc",
+      "sha256": "460a21ba3d14341b51eec06c11576886ad6bc2488db17a4a0977b740d3fb3457",
+      "bytes": 18296
+    },
+    {
+      "path": "tools/check_gold.py",
+      "sha256": "5b9166c966dfd24994558161c7354dd0bff4ee3afcfc35e39fd64b3467939076",
+      "bytes": 15474
+    },
+    {
+      "path": "tools/gold_solver.py",
+      "sha256": "10fc1bb5447d73f8afa72972b90a3af790723b79efdd01d95646d4f435d8bbe7",
+      "bytes": 19929
+    },
+    {
+      "path": "tools/profile_convert.py",
+      "sha256": "6c720525286146248745843a6c75e9c5b19fc4bf649c0fea8f0c9f8686ac8105",
+      "bytes": 2936
+    },
+    {
+      "path": "tools/sensitivity_gate.py",
+      "sha256": "ec6343f8e2236b4d4e7a02c776fe2dcfcc37c837ec39264745e5419fc96b50b9",
+      "bytes": 2724
+    },
+    {
+      "path": "tools/vehicle_gold.py",
+      "sha256": "d0dcd7e06bcae7a74d3747dd73153acd96375e7753073b4de1a5a9e7129edeca",
+      "bytes": 11968
+    }
+  ]
+}

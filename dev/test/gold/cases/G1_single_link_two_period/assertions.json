@@ -1,0 +1,24 @@
+{
+  "case": "G1_single_link_two_period",
+  "reference": "gate-reference-values Test 01b",
+  "tolerance_default": 1e-6,
+  "cell_assertions": [
+    {"link": "L1", "time": "07:20:00", "column": "exit_queue_pce", "expect": 0.0, "note": "Q(07:20-)==0"},
+    {"link": "L1", "time": "08:00:00", "column": "exit_queue_pce", "expect": 266.6666666667, "note": "I3: Q(08:00-)==Q(08:00+), the single most important assertion in the suite"},
+    {"link": "L1", "time": "08:00:00", "column": "CA_veh", "expect": 1200.0},
+    {"link": "L1", "time": "08:00:00", "column": "CD_veh", "expect": 933.3333333333},
+    {"link": "L1", "time": "08:20:00", "column": "exit_queue_pce", "expect": 333.3333333333, "note": "peak queue at 08:20, not at any period midpoint"},
+    {"link": "L1", "time": "09:00:00", "column": "exit_queue_pce", "expect": 0.0, "note": "queue clears at exactly 09:00:00"},
+    {"link": "L1", "time": "09:00:00", "column": "CA_veh", "expect": 2133.3333333333},
+    {"link": "L1", "time": "09:00:00", "column": "CD_veh", "expect": 2133.3333333333}
+  ],
+  "episode_assertions": [
+    {"link": "L1", "T2": "08:20:00", "T3": "09:00:00", "peak_queue_pce": 333.3333333333}
+  ],
+  "boundary_delay_assertions": [
+    {"link": "L1", "boundary": "08:00:00", "mu_before": 1000, "mu_after": 1200,
+     "delay_before_min": 16.0, "delay_after_min": 13.3333333333,
+     "note": "correct physics: travel time drops discontinuously while the queue stays continuous, because capacity jumped. A reviewer seeing this for the first time will report it as a bug."}
+  ],
+  "queue_continuity": {"boundaries": ["08:00:00", "09:00:00"], "note": "reset_detected must be 0 in period_boundary_audit.csv for every (boundary, link)"}
+}

@@ -1,0 +1,60 @@
+{
+  "link_time_performance_minute.csv": {
+    "grain": "one link x one record interval (60 s) x one row, long format",
+    "pk": ["link_id", "time_sec"],
+    "columns": {
+      "time_sec": "integer seconds from midnight; row equals the CONTINUOUS state at t (recorded before the tick)",
+      "time": "HH:MM:SS, I/O display only, may exceed 24:00:00",
+      "period_id": "supply period at t (half-open [s,e)); FK to demand_period.csv",
+      "CA_veh|CA_pce": "cumulative arrivals at link ENTRANCE",
+      "CQ_veh|CQ_pce": "cumulative arrivals at the EXIT QUEUE == CA shifted by fftt; the tandem identity CD_up(t)==CQ_down(t+fftt_down) is asserted on this column",
+      "CD_veh|CD_pce": "cumulative departures",
+      "exit_queue_pce": "Q(t), fluid past free-flow and not yet discharged",
+      "occupancy_veh|occupancy_pce": "everything on the link (in transit + queued)",
+      "capacity_pce_per_hour": "mu at t - per-row so the physics is auditable in the file itself",
+      "fftt_sec": "reference travel time at t",
+      "instantaneous_travel_time_sec": "fftt + Q(t)/mu(t), snapshot",
+      "exit_time|exit_time_sec": "E_a(t) = t + TT(t), STORED not derived (I10)",
+      "speed_mph": "length / instantaneous TT",
+      "capacity_source|reference_tt_source": "provenance echoed from link_period.csv (I12)"
+    }
+  },
+  "link_time_performance.csv": {
+    "grain": "output_dt_sec (300 s) subsample of the minute file",
+    "adds": {"experienced_tt_sec": "flow-weighted TT of fluid that DEPARTED the link within the bin; blank if no departures"}
+  },
+  "congestion_episode_gold.csv": {
+    "columns": ["link_id", "has_congestion", "T0", "T2", "T3", "P_min", "peak_queue_pce", "v_t2_mph", "mu_at_t2_pceph"],
+    "note": "T0/T2/T3 derived from state, never from a period midpoint; QVDF/CBI+ bridge"
+  },
+  "period_boundary_audit.csv": {
+    "columns": ["boundary", "link_id", "Q_before_pce", "Q_at_boundary_pce", "mu_before", "mu_after", "delay_before_min", "delay_after_min", "reset_detected"],
+    "note": "I3 evidence. The two delays are t-/t+ views of the SAME continuous Q under the two mus. reset_detected is physically bounded (drainage beyond one tick of capacity), so a queue that legitimately clears exactly at a boundary is not flagged."
+  },
+  "corridor_time_performance_gold.csv": {
+    "columns": ["corridor_id", "time_sec", "time", "model_travel_time_instantaneous_sec", "model_travel_time_sec", "slowest_link", "min_speed_mph"],
+    "note": "model_travel_time_sec is EXPERIENCED (composed through E_a); the instantaneous sum is the naive snapshot - both emitted, clearly labelled. Compare the experienced one to INRIX."
+  },
+  "corridor_conservation_gold.csv": {
+    "columns": ["corridor_id", "node_id", "upstream_link", "downstream_link", "time_sec", "time", "CD_upstream_pce", "R_on_pce", "R_off_pce", "CA_downstream_pce", "residual_pce"],
+    "note": "CA_{i+1}(t) = CD_i(t) + R_on(t) - R_off(t); residual asserted <= 2e-9; requires ramps declared in corridor.csv"
+  },
+  "vehicle_gold.csv": {
+    "pk": ["vehicle_id"],
+    "columns": ["vehicle_id", "route_id", "vehicle_class_id", "demand_period_id", "departure_profile_id", "departure_time", "departure_time_sec"],
+    "note": "largest-remainder apportionment per bin; within-bin even spacing dep = bin_start + floor(j*width/N); byte-identical reruns across hash seeds (I9)"
+  },
+  "vehicle_link_trajectory_gold.csv": {
+    "grain": "one (vehicle, link) traversal per row - THE audit trail, no deduplication",
+    "columns": ["vehicle_id", "route_id", "corridor_id", "vehicle_class_id", "pce", "demand_period_id", "link_id", "link_seq", "supply_period_id", "entry_time", "entry_time_sec", "exit_time", "exit_time_sec", "free_flow_time_sec", "queue_delay_sec", "travel_time_sec", "entry_queue_pce", "mu_at_entry_pceph"],
+    "note": "BOTH period ids deliberately - the rows where they differ are the demonstration that I4 works"
+  },
+  "vehicle_trajectory_gold.csv": {
+    "columns": ["vehicle_id", "route_id", "vehicle_class_id", "demand_period_id", "departure_time", "arrival_time", "travel_time_sec", "trip_completed", "incomplete_reason", "blocked_link"],
+    "incomplete_reason_enum": ["horizon_end_in_queue", "horizon_end_in_transit", "blocked_spillback", "route_infeasible_allowed_uses"]
+  },
+  "reconciliation_gold.csv": {
+    "columns": ["route_id", "demand_period_id", "vehicle_class_id", "tap_volume_veh", "vehicleized_volume", "dnl_entered_volume", "dnl_completed_volume", "vehicleization_exact"],
+    "note": "demand-period accounting; clock-period accounting legitimately differs for boundary-crossing trips and is derivable from the trajectory file"
+  }
+}

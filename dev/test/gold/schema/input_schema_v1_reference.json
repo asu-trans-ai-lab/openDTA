@@ -1,0 +1,194 @@
+{
+  "dataset_id": "GOLD-DTA-2R-MP-v1",
+  "files": {
+    "node.csv": {
+      "pk": [
+        "node_id"
+      ],
+      "required": {
+        "node_id": "str"
+      },
+      "optional": {
+        "zone_id": "str"
+      }
+    },
+    "link.csv": {
+      "pk": [
+        "link_id"
+      ],
+      "required": {
+        "link_id": "str",
+        "from_node_id": "str",
+        "to_node_id": "str",
+        "length_miles": "float",
+        "lanes": "float"
+      },
+      "fk": {
+        "from_node_id": "node.csv.node_id",
+        "to_node_id": "node.csv.node_id"
+      }
+    },
+    "demand_period.csv": {
+      "pk": [
+        "period_id"
+      ],
+      "required": {
+        "period_id": "str",
+        "period_name": "str",
+        "start_time": "clock",
+        "end_time": "clock",
+        "sequence_no": "int",
+        "demand_active": "bool"
+      }
+    },
+    "link_period.csv": {
+      "pk": [
+        "link_id",
+        "period_id"
+      ],
+      "required": {
+        "link_id": "str",
+        "period_id": "str",
+        "capacity_pce_per_hour": "float",
+        "fftt_sec": "float",
+        "allowed_uses": "token_set",
+        "capacity_source": "str",
+        "fftt_source": "str"
+      },
+      "fk": {
+        "link_id": "link.csv.link_id",
+        "period_id": "demand_period.csv.period_id"
+      }
+    },
+    "vehicle_class.csv": {
+      "pk": [
+        "vehicle_class_id"
+      ],
+      "required": {
+        "vehicle_class_id": "str",
+        "pce": "float"
+      }
+    },
+    "route.csv": {
+      "pk": [
+        "route_id"
+      ],
+      "required": {
+        "route_id": "str",
+        "o_zone_id": "str",
+        "d_zone_id": "str",
+        "corridor_id": "str",
+        "link_sequence": "link_sequence"
+      }
+    },
+    "corridor.csv": {
+      "pk": [
+        "corridor_id",
+        "sequence_no",
+        "link_id"
+      ],
+      "required": {
+        "corridor_id": "str",
+        "sequence_no": "int",
+        "link_id": "str",
+        "role": "str"
+      },
+      "fk": {
+        "link_id": "link.csv.link_id"
+      }
+    },
+    "departure_profile.csv": {
+      "pk": [
+        "profile_id",
+        "departure_time"
+      ],
+      "required": {
+        "profile_id": "str",
+        "period_id": "str",
+        "departure_time": "clock",
+        "bin_width_sec": "int",
+        "weight": "float",
+        "profile_source": "str"
+      },
+      "fk": {
+        "period_id": "demand_period.csv.period_id"
+      }
+    },
+    "columns.csv": {
+      "pk": [
+        "route_id",
+        "period_id",
+        "vehicle_class_id"
+      ],
+      "required": {
+        "route_id": "str",
+        "period_id": "str",
+        "vehicle_class_id": "str",
+        "volume_veh": "float",
+        "departure_profile_id": "str"
+      },
+      "fk": {
+        "route_id": "route.csv.route_id",
+        "period_id": "demand_period.csv.period_id",
+        "vehicle_class_id": "vehicle_class.csv.vehicle_class_id",
+        "departure_profile_id": "departure_profile.csv.profile_id"
+      }
+    },
+    "demand.csv": {
+      "pk": [
+        "o_zone_id",
+        "d_zone_id",
+        "period_id",
+        "vehicle_class_id"
+      ],
+      "required": {
+        "o_zone_id": "str",
+        "d_zone_id": "str",
+        "period_id": "str",
+        "vehicle_class_id": "str",
+        "volume_veh": "float"
+      }
+    },
+    "measurement.csv": {
+      "pk": [
+        "sensor_id",
+        "measurement_type",
+        "start_time"
+      ],
+      "required": {
+        "sensor_id": "str",
+        "measurement_type": "str",
+        "start_time": "clock",
+        "end_time": "clock",
+        "value": "float",
+        "unit": "str",
+        "is_observed": "bool",
+        "source": "str"
+      },
+      "optional": {
+        "link_id": "str",
+        "corridor_id": "str",
+        "std_dev": "float"
+      }
+    }
+  },
+  "units": {
+    "capacity": "PCE/hour/link",
+    "fftt": "second",
+    "length": "mile",
+    "speed": "mph",
+    "travel_time": "second",
+    "flow": "veh or PCE as labeled"
+  },
+  "hard_rules": [
+    "periods are half-open and non-overlapping",
+    "every link has one link_period row for every period covering the simulation horizon",
+    "queue state never resets at period boundaries",
+    "demand-period label is not used as a supply-period substitute",
+    "all capacities are PCE/hour/link",
+    "all route link sequences are physically contiguous",
+    "all departure profiles sum to 1 within tolerance and lie within their declared period",
+    "sum of column volumes equals demand.csv by OD\u00d7class\u00d7period",
+    "raw/original, synthetic, imputed, derived and holdout status is explicit in observation data"
+  ]
+}

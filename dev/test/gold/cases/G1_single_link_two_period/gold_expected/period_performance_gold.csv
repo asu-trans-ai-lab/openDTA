@@ -1,0 +1,4 @@
+link_id,period_id,arrival_pce_approx,capacity_pce_per_hour,D_over_C,queue_duration_min,min_speed_mph,max_queue_pce
+L1,P1,1176.666667,1000.0,1.176667,39.0,3.846154,260.0
+L1,P2,921.666667,1200.0,0.768056,60.0,3.6,333.333333
+L1,P3,0.0,1200.0,0.0,0.0,60.0,0.0

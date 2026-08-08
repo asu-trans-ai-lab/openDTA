@@ -1,0 +1,2 @@
+vehicle_id,agent_type,route_id,departure_time,pce,weight,demand_period_id
+VNEG001,truck,R1,07:59:30,2.0,1.0,P1

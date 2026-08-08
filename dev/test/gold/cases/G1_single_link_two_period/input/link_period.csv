@@ -1,0 +1,4 @@
+link_id,period_id,capacity_pce_per_hour,capacity_unit,fftt_sec,reference_tt_sec,allowed_uses,toll,capacity_ratio,capacity_source,reference_tt_source
+L1,P1,1000,pce_per_hour_per_link,0,0,all,0,1.0,gate_reference_test01b,gate_reference_test01b
+L1,P2,1200,pce_per_hour_per_link,0,0,all,0,1.0,gate_reference_test01b,gate_reference_test01b
+L1,P3,1200,pce_per_hour_per_link,0,0,all,0,1.0,gate_reference_test01b,gate_reference_test01b

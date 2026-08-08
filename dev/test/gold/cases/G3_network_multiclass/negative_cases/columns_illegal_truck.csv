@@ -1,0 +1,8 @@
+route_id,period_id,vehicle_class_id,volume_veh,departure_profile_id
+R1,P1,auto,600,P1_R1
+R2,P1,auto,400,P1_R2
+R2,P1,truck,100,P1_R2
+R1,P2,auto,350,P2_R1
+R2,P2,auto,450,P2_R2
+R2,P2,truck,100,P2_R2
+R1,P2,truck,10,P2_R1

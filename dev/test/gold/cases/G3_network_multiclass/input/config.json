@@ -1,0 +1,16 @@
+{
+  "dataset_id": "GOLD-DTA-2R-MP-v2",
+  "case": "Gate 3 - network, multi-class, multi-period (upgrade of GOLD-DTA-2R-MP-v1)",
+  "description": "One OD pair, two routes/corridors sharing downstream bottleneck L5, three supply periods, auto/truck PCE, period-dependent mu and allowed_uses. v2 adds: full link_period contract (capacity_unit, reference_tt, capacity_ratio, provenance), departure_profile_binding fallback table, vehicle-level gold (largest-remainder vehicleization + deterministic vehicle DNL + vehicle_link_trajectory audit trail), reconciliation, corridor experienced-vs-instantaneous TT, and period-boundary audit.",
+  "simulation_start": "07:00:00",
+  "demand_horizon_end": "09:00:00",
+  "simulation_end": "10:00:00",
+  "simulation_dt_sec": 6,
+  "output_dt_sec": 300,
+  "capacity_unit": "pce_per_hour_per_link",
+  "length_unit": "mile",
+  "speed_unit": "mph",
+  "vehicleization": "largest_remainder_per_bin, within-bin even spacing dep=bin_start+floor(j*width/N), stable order (route_id, period_id, vehicle_class_id, bin_time, j)",
+  "gold_policy": "Analytical/constructed deterministic gold. No random numbers. Raw/input files immutable after release.",
+  "record_dt_sec": 60
+}

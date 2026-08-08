@@ -1,0 +1,7 @@
+link_id,from_node_id,to_node_id,length_miles,lanes
+M1,n0,n1,1.0,1
+M2,n1,n2,1.0,1
+M3,n2,n3,1.0,1
+M4,n3,n4,1.0,1
+RON,r1,n1,0.3,1
+ROF,n3,x1,0.3,1

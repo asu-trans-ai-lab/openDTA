@@ -1,0 +1,47 @@
+---
+# settings for OpenDTA
+user_equilibrium:
+  load_columns: false
+  column_gen_num: 20
+  column_opd_num: 20
+
+simulation:
+  enable: true
+  # number of seconds per simulation interval
+  resolution: 6
+  traffic_flow_model: kinematic_wave
+
+agent_type:
+  - type: a
+    name: auto
+    flow_type: 0
+    pce: 1
+    vot: 10
+    free_speed: 60
+    use_link_ffs: true
+  - type: w
+    name: walk
+    flow_type: 0
+    pce: 1
+    vot: 10
+    free_speed: 10
+    use_link_ffs: false
+
+demand_period:
+  - period: AM
+    time_period: 0700-0800
+    demand:
+      - file_name: demand.csv
+        agent_type: auto
+    special_event:
+      name: work_zone
+      enable: true
+      affected_link:
+        - link_id: 1
+          capacity_ratio: 0.5
+        - link_id: 2
+          capacity_ratio: 0.4
+        - link_id: 3
+          capacity_ratio: 0.6
+        - link_id: 4
+          capacity_ratio: 0.1

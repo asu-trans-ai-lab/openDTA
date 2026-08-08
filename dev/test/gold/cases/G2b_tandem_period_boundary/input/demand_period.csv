@@ -1,0 +1,4 @@
+period_id,period_name,start_time,end_time,sequence_no,demand_active
+P1,AM1,07:00:00,07:45:00,1,1
+P2,AM2,07:45:00,08:30:00,2,1
+P3,CLEAR,08:30:00,09:30:00,3,0

@@ -1,0 +1,3 @@
+o_zone_id,d_zone_id,period_id,vehicle_class_id,volume_veh
+Z_O,Z_D,P1,auto,900.0
+Z_O,Z_D,P2,auto,450.0
