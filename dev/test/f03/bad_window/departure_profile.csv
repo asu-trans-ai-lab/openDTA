@@ -1,0 +1,3 @@
+profile_id,period_id,departure_time,bin_width_sec,weight
+AM_PEAK,1,07:00:00,1800,0.4
+AM_PEAK,1,08:30:00,1800,0.6

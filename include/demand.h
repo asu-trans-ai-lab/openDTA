@@ -318,6 +318,61 @@ private:
     const AgentType* at;
 };
 
+// a departure-time profile bound to one demand period (F03): bins of
+// (start minute on the possibly >24h monotone clock, width in minutes,
+// normalized weight); nothing consumes it until vehicle generation (F04)
+class DepartureProfile {
+public:
+    struct Bin {
+        double start_min;
+        double width_min;
+        double weight;
+    };
+
+    DepartureProfile() = delete;
+
+    DepartureProfile(std::string id_, int period_id_, std::vector<Bin>&& bins_, double factor_)
+        : id {std::move(id_)}, period_id {period_id_},
+          bins {std::move(bins_)}, norm_factor {factor_}
+    {
+    }
+
+    DepartureProfile(const DepartureProfile&) = delete;
+    DepartureProfile& operator=(const DepartureProfile&) = delete;
+
+    DepartureProfile(DepartureProfile&&) = delete;
+    DepartureProfile& operator=(DepartureProfile&&) = delete;
+
+    ~DepartureProfile() = default;
+
+    const std::string& get_id() const
+    {
+        return id;
+    }
+
+    auto get_period_id() const
+    {
+        return period_id;
+    }
+
+    const std::vector<Bin>& get_bins() const
+    {
+        return bins;
+    }
+
+    auto get_norm_factor() const
+    {
+        return norm_factor;
+    }
+
+private:
+    std::string id;
+    int period_id;
+
+    std::vector<Bin> bins;
+    double norm_factor;
+};
+
 class DemandPeriod {
 public:
     DemandPeriod() : no {0}, period_id {1}, period {"AM"}, time_period {"0700-0800"}, se {nullptr}
@@ -330,10 +385,11 @@ public:
     }
 
     DemandPeriod(uint8_t no_, int period_id_,
-                 std::string& period_, std::string& time_period_,
+                 std::string& period_, std::string& time_period_, std::string& dep_profile_name_,
                  Demand&& dem, std::unique_ptr<SpecialEvent>& se_)
         : no {no_}, period_id {period_id_},
-          period {std::move(period_)}, time_period {std::move(time_period_)}, se {std::move(se_)}
+          period {std::move(period_)}, time_period {std::move(time_period_)},
+          dep_profile_name {std::move(dep_profile_name_)}, se {std::move(se_)}
     {
         ds.push_back(std::move(dem));
         setup_time();
@@ -367,6 +423,17 @@ public:
     const std::string& get_time_period() const
     {
         return time_period;
+    }
+
+    // F03: departure profile binding from settings.yml (empty when unbound)
+    const std::string& get_departure_profile_name() const
+    {
+        return dep_profile_name;
+    }
+
+    bool has_departure_profile() const
+    {
+        return !dep_profile_name.empty();
     }
 
     const auto& get_demands() const
@@ -408,6 +475,7 @@ private:
 
     std::string period;
     std::string time_period;
+    std::string dep_profile_name;
 
     unsigned short start_time = 420;
     unsigned short dur = 60;
