@@ -1062,12 +1062,33 @@ void NetworkHandle::read_settings_yml(const std::string& file_path)
         this->ats.push_back(new AgentType());
 
     uint8_t j = 0;
+    int entry_no = 0;
+    std::vector<int> period_ids;
     const auto& demand_periods = settings["demand_period"];
     for (const auto& dp : demand_periods)
     {
         uint8_t k = 0;
         auto period = dp["period"].as<std::string>();
         auto time_period = dp["time_period"].as<std::string>();
+
+        // explicit computational key; falls back to the 1-based entry position
+        ++entry_no;
+        auto period_id = dp["period_id"] ? dp["period_id"].as<int>() : entry_no;
+        if (period_id < 1)
+            throw std::invalid_argument{
+                "period_id must be a positive integer for demand_period " + period
+            };
+
+        for (auto id : period_ids)
+        {
+            if (id == period_id)
+                throw std::invalid_argument{
+                    "duplicate period_id " + std::to_string(period_id)
+                    + " for demand_period " + period
+                };
+        }
+
+        period_ids.push_back(period_id);
 
         const auto& demands = dp["demand"];
         for (const auto& d : demands)
@@ -1103,10 +1124,15 @@ void NetworkHandle::read_settings_yml(const std::string& file_path)
                 }
 
                 const auto dp_ = new DemandPeriod{
-                    j++, period, time_period, Demand{k++, file_name, at}, se
+                    j++, period_id, period, time_period, Demand{k++, file_name, at}, se
                 };
 
                 this->dps.push_back(dp_);
+            }
+            catch(const std::invalid_argument&)
+            {
+                // malformed time_period from DemandPeriod::setup_time(); fatal
+                throw;
             }
             catch(const std::exception& e)
             {

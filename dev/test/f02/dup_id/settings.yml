@@ -1,0 +1,34 @@
+---
+# F02 negative fixture: duplicate period_id must terminate with a named error
+user_equilibrium:
+  load_columns: false
+  column_gen_num: 20
+  column_opd_num: 20
+
+simulation:
+  enable: false
+  resolution: 6
+  traffic_flow_model: point_queue
+
+agent_type:
+  - type: a
+    name: auto
+    flow_type: 0
+    pce: 1
+    vot: 10
+    free_speed: 60
+    use_link_ffs: true
+
+demand_period:
+  - period: AM
+    period_id: 1
+    time_period: 0700-0800
+    demand:
+      - file_name: demand.csv
+        agent_type: auto
+  - period: MD
+    period_id: 1
+    time_period: 0800-0900
+    demand:
+      - file_name: demand.csv
+        agent_type: auto

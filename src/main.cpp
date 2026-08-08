@@ -15,6 +15,7 @@
 using namespace transoms;
 
 int main(int argc, char* argv[])
+try
 {
     auto mini_timer = MiniTimer();
     mini_timer.start();
@@ -76,4 +77,9 @@ int main(int argc, char* argv[])
         mini_timer.stop();
         mini_timer.broadcast("OpenDTA outputs results in ");
     }
+}
+catch (const std::exception& e)
+{
+    std::cerr << "OpenDTA terminated: " << e.what() << '\n';
+    return 1;
 }
