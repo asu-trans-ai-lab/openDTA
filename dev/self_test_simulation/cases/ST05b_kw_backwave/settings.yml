@@ -1,0 +1,48 @@
+---
+# ST05b: kinematic-wave backwave gate (same network as ST05a). Feeder L1 (1 mi, 3600/h = 6/interval,
+# storage 200) into bottleneck L2 (0.2 mi, 1200/h = 2/interval, storage
+# floor(0.2*1*200) = 40, fftt = 2 intervals). Demand 1800/h for 30 min.
+# Engine receiving rule (supply.h): block transfer into L2 when
+#   CA2[t-1] - CD2[max(0, t-1-BWTT)] > 40, BWTT = 0.2/12*60 min = 10 intervals.
+# The lagged-CD term reserves backwave space: blocking starts EARLIER than
+# ST05a (occupancy + last-BWTT departures ~ occ + 20 crosses 40 sooner).
+# Oracle: tools/check_two_link.py mirrors the rule exactly (integer flows).
+user_equilibrium:
+  load_columns: false
+  column_gen_num: 20
+  column_opd_num: 20
+
+simulation:
+  enable: true
+  resolution: 6
+  traffic_flow_model: kinematic_wave
+
+agent_type:
+  - type: a
+    name: auto
+    flow_type: 0
+    pce: 1
+    vot: 10
+    free_speed: 60
+    use_link_ffs: true
+
+demand_period:
+  - period: P1
+    period_id: 1
+    time_period: 0700-0730
+    demand:
+      - file_name: demand.csv
+        agent_type: auto
+  - period: D1
+    period_id: 2
+    time_period: 0730-0830
+    demand:
+      - file_name: demand_zero.csv
+        agent_type: auto
+  - period: D2
+    period_id: 3
+    time_period: 0830-0930
+    demand:
+      - file_name: demand_zero.csv
+        agent_type: auto
+

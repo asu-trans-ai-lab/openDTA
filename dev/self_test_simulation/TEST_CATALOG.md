@@ -162,6 +162,34 @@ ST02e incident (May §12.2.3, 600-multiples): TD = 450·t_R² sweep gate
 contract preview. ST10 Webster signal (Elef Ex. 9.2): d₁ = 13.5 s/veh,
 delay ∝ red² sweep.
 
+### ST05a/ST05b — spatial-queue spillback & kinematic-wave backwave (GREEN 14/14)
+
+Two-link corridor: feeder L1 (1 mi, 3600/h = 6/interval, storage 200) →
+bottleneck L2 (0.2 mi, 1200/h = 2/interval, storage floor(0.2·200) = 40,
+fftt 2 intervals, BWTT 0.2/12·60 min = 10 intervals). Demand 1800/h × 30 min
+= 900 veh. Gate: `tools/check_two_link.py` — an independent per-interval
+fluid oracle mirroring the engine's receiving rules exactly (integer flows).
+
+**Semantics provenance (classical DTALite vs openDTA), from
+`consensus_datasets/simulation_DTALite_classical.cpp`:**
+
+| Aspect | classical DTALite | openDTA | verdict |
+| --- | --- | --- | --- |
+| SQ receiving | `CA[t] − CD[t] > storage` (current t); cell mode adds reaction-time headway `time_to_be_released` | `CA[t−1] − CD[t−1] > storage` (previous-interval snapshot) | equivalent up to one interval; headway effects = Ring 2 |
+| KW receiving | **commented-out sketch** ("to be discussed later with Cafer"): computes `lag = t−1−BWTT` but never uses it in the occupancy | `CA[t−1] − CD[max(0, t−1−BWTT)] > storage` — the completed form = LTM receiving `A ≤ D(t−BWTT) + k_j·L` | openDTA is a **documented deliberate improvement** of the unfinished classical code |
+| storage source | input field `spatial_capacity_in_vehicles` | computed from hardcoded `JAM_DENSITY = 200`, `BACKWAVE_SPEED = 12` (global.h:34–35) | **finding M-13**: constants are not part of the supply contract — must move to link.csv/link_period.csv before F05/F07 |
+
+Verified behavior (engine, 14/14):
+- conservation 900/900 both models; bottleneck discharge ≤ 20/min always;
+- SQ: L2 occupancy peaks 44 (storage 40 + one-interval overshoot ≤ 46),
+  L1 spillback max 300 veh, oracle first-block interval 48;
+- KW: physical L2 occupancy peaks only **24** — the lagged-CD term reserves
+  backwave space; blocks at interval **28** (earlier than SQ), L1 spillback
+  **318** veh — exactly the LTM signature;
+- cross-model: KW blocks no later than SQ; KW spillback ≥ SQ spillback;
+- curves vs oracle: CA deviation 0; CD deviations 18–24 = the pre-S2b
+  minute-batch family (strict ≤ 2 veh assertion activates after S2b).
+
 ### ST01 / ST03 — profile loading & tandem (declared, disabled)
 Await S1/S2 (profile-consuming vehicleization) and S6 (tandem via the frozen
 gold G2/G2b cases).
