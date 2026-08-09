@@ -56,6 +56,19 @@ if (SELF_TEST)
     if (PARALLEL)
         target_link_libraries(OpenDTA_self_test PRIVATE OpenMP::OpenMP_CXX)
     endif()
+
+    # ctest registration: the C++ harness plus the full python gate battery
+    # (see dev/self_test_simulation/TESTING_VALIDATION_PLAN.md)
+    add_test(NAME opendta_self_test
+             COMMAND OpenDTA_self_test ${PROJECT_SOURCE_DIR}/dev/self_test_simulation
+             WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/dev/self_test_simulation)
+    find_package(Python3 COMPONENTS Interpreter)
+    if (Python3_FOUND)
+        add_test(NAME opendta_gates
+                 COMMAND ${Python3_EXECUTABLE} tools/run_all_gates.py --no-record
+                 WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/dev/self_test_simulation)
+        set_tests_properties(opendta_gates PROPERTIES TIMEOUT 1800)
+    endif()
 endif()
 
 # it is for std::experimental::filesystem in utils.cpp if g++ happens to be the compiler
