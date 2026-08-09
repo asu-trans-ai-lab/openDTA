@@ -79,6 +79,9 @@ try
 
             if (nh.saves_trajectory())
                 nh.output_trajectories();
+
+            // S3: standing loading-contract audit (A_sim vs n*F(t))
+            nh.output_cumulative_departure_audit();
         }
 
         mini_timer.stop();
