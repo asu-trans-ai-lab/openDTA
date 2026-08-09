@@ -1,0 +1,41 @@
+---
+# ST04b: fractional service discretization gate (S4). Capacity 360/h at 6-s
+# resolution -> c = 0.6 veh/interval: the integer path cannot represent it.
+# Pre-S4 engine draws ONE random_device value for the whole horizon
+# (all-intervals cap 0 = gridlock, or cap 1 = 600/h overservice) and reruns
+# differ. Post-S4 the legacy LCG (a=17364, c=0, M=65521, per-link seed 101)
+# draws per interval: same seed -> byte-identical reruns; long-run
+# discharge -> 360/h; no starvation. Demand 600/h for 30 min (300 veh),
+# queue drains by ~50 min.
+user_equilibrium:
+  load_columns: false
+  column_gen_num: 20
+  column_opd_num: 20
+
+simulation:
+  enable: true
+  resolution: 6
+  traffic_flow_model: point_queue
+
+agent_type:
+  - type: a
+    name: auto
+    flow_type: 0
+    pce: 1
+    vot: 10
+    free_speed: 60
+    use_link_ffs: true
+
+demand_period:
+  - period: P1
+    period_id: 1
+    time_period: 0700-0730
+    demand:
+      - file_name: demand.csv
+        agent_type: auto
+  - period: DRAIN
+    period_id: 2
+    time_period: 0730-0900
+    demand:
+      - file_name: demand_zero.csv
+        agent_type: auto

@@ -1,0 +1,9 @@
+agent_id,o_zone_id,d_zone_id,path_id,agent_type,demand_period,volume,toll,travel_time,distance,link_sequence,node_sequence,geometry
+0,1,2,0,car,AM,1000,0,10.0059,10,1,1;2,
+1,1,2,0,truck,AM,1000,0,10.0938,10,1,1;2,
+2,1,2,0,car,MD,1000,0,10.0059,10,1,1;2,
+3,1,2,0,truck,MD,1000,0,10.0938,10,1,1;2,
+4,1,2,0,car,PM,1000,0,10.0059,10,1,1;2,
+5,1,2,0,truck,PM,1000,0,10.0938,10,1,1;2,
+6,1,2,0,car,NT,1000,0,10.0059,10,1,1;2,
+7,1,2,0,truck,NT,1000,0,10.0938,10,1,1;2,
