@@ -69,6 +69,14 @@ determinism re-verified (2× byte-identical). Gate evidence: ST00c micro case
 (gold per-agent TT 1.0/1.1/1.2 min) RED→GREEN; the oracle-based S0c
 diagnostic passes on ST02a (0 of 115 congested minutes report free-flow TT).
 
+**S2a/S2b re-freeze (approved mini-spec, feature/vehicleization):** conserved
+largest-remainder vehicleization (F-2 ceil retired) and 6-sec deterministic
+departure staggering (minute batching retired). Sim trajectories and
+link_performance_dta re-frozen (loading realization corrected; determinism
+verified 3x); UE outputs byte-unchanged. Gate evidence: all seven analytical
+cases 10/10 with the interval-grid oracle; ST05 strict tolerance (2 veh);
+ST00c regenerated gold exact.
+
 **Comparison rule (waiver deleted):** ALL columns of every output file,
 including `travel_time` and `speed`, compare **byte-exact**. The
 `link_performance_dta.csv` references below were re-frozen with the S0
@@ -85,13 +93,13 @@ BB277B8C66F0B879    145096  Chicago_Sketch_default/link_performance_ue.csv
 C69F13AC21A1D545       223  Two_Corridor_default/columns.csv
 9701BD5B430DB436       280  Two_Corridor_default/link_performance_ue.csv
 7A5007EAC248FD49       175  Two_Corridor_sim_kinematic_wave/output/columns.csv
-D8F9B047EA85FF21      4400  Two_Corridor_sim_kinematic_wave/output/link_performance_dta.csv  (re-frozen at S0c)
-D6328AAA96C77AB6    766068  Two_Corridor_sim_kinematic_wave/output/trajectories.csv          (re-frozen at S0d: all 7000 agents)
+2AF94C6AFCD642B9      4378  Two_Corridor_sim_kinematic_wave/output/link_performance_dta.csv  (re-frozen at S2b)
+528AAEAACF17495E    766060  Two_Corridor_sim_kinematic_wave/output/trajectories.csv          (re-frozen at S2b: all 7000 agents, interval staggering)
 1D54E57A8162EC0B       254  Two_Corridor_sim_kinematic_wave/output/link_performance_ue.csv
 492CE066581BF70C      6657  Two_Corridor_sim_kinematic_wave/output/trajectories.csv
 7A5007EAC248FD49       175  Two_Corridor_sim_point_queue/output/columns.csv
-D8F9B047EA85FF21      4400  Two_Corridor_sim_point_queue/output/link_performance_dta.csv     (re-frozen at S0c; identical to KW in this case)
-D6328AAA96C77AB6    766068  Two_Corridor_sim_point_queue/output/trajectories.csv             (re-frozen at S0d: all 7000 agents)
+2AF94C6AFCD642B9      4378  Two_Corridor_sim_point_queue/output/link_performance_dta.csv     (re-frozen at S2b; identical to KW in this case)
+528AAEAACF17495E    766060  Two_Corridor_sim_point_queue/output/trajectories.csv             (re-frozen at S2b: all 7000 agents, interval staggering)
 1D54E57A8162EC0B       254  Two_Corridor_sim_point_queue/output/link_performance_ue.csv
 492CE066581BF70C      6657  Two_Corridor_sim_point_queue/output/trajectories.csv
 ```

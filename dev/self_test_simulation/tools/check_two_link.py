@@ -39,7 +39,8 @@ FFTT1, FFTT2 = 10, 2
 STORAGE2 = 40
 BWTT2 = 10
 TOTAL = 900
-BATCH_TOL = 35              # one minute-batch at 1800/h + margin (pre-S2b)
+BATCH_TOL = 2               # strict post-S2b: interval-uniform loading matches
+                            # the oracle to integer-rounding tolerance
 
 
 def oracle(kw):
@@ -124,12 +125,14 @@ def run_case(case_id, kw):
     occ1 = [sim["1"]["CA"][t] - sim["1"]["CD"][t] for t in range(n)]
     check(max(occ1) > 60, f"spillback formed on L1 (max occupancy {max(occ1):.0f} veh)")
 
-    # curve-level closeness vs the oracle (minute grid: oracle interval 10t)
+    # curve-level closeness vs the oracle. Sim row t records state AFTER
+    # engine interval 10t; oracle index j holds cumulative through interval
+    # j-1, so the matching oracle index is 10t + 1.
     devs = []
     for series, olist in (("1CA", orc["ca1"]), ("1CD", orc["cd1"]),
                           ("2CA", orc["ca2"]), ("2CD", orc["cd2"])):
         link, kind = series[0], series[1:]
-        d = max(abs(sim[link][kind][t] - olist[min((t + 1) * 10, N_INTERVALS)])
+        d = max(abs(sim[link][kind][t] - olist[min(t * 10 + 1, N_INTERVALS)])
                 for t in range(n))
         devs.append((series, d))
 
