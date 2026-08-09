@@ -153,13 +153,51 @@ void NetworkHandle::setup_agents()
         auto dp_dur = this->dps[dp_no]->get_duration();
         auto dp_st = this->dps[dp_no]->get_start_time();
 
+        // S2a: conserved integer vehicleization by largest remainder over the
+        // column vector - the sum of agents equals round(sum of column
+        // volumes) exactly. The previous per-column ceil inflated counts
+        // (defect F-2); classical DTALite rounds (path_volume + 0.5), and
+        // largest remainder is the conserved strengthening of that rule.
+        // Deterministic: no RNG; ties resolved by container order.
+        std::vector<const Column*> cols;
+        std::vector<size_type> counts;
+        std::vector<double> residuals;
+        double vol_sum = 0;
+        size_type assigned = 0;
         for (const auto& col : cv.get_columns())
         {
-            for (size_type i = 0, vol = std::ceil(col.get_volume()); i != vol; ++i)
+            auto vol = col.get_volume();
+            auto n = static_cast<size_type>(std::floor(vol));
+            cols.push_back(&col);
+            counts.push_back(n);
+            residuals.push_back(vol - n);
+            vol_sum += vol;
+            assigned += n;
+        }
+
+        auto target = static_cast<size_type>(vol_sum + 0.5);
+        while (assigned < target)
+        {
+            std::vector<double>::size_type best = 0;
+            for (std::vector<double>::size_type c = 1; c != residuals.size(); ++c)
+            {
+                if (residuals[c] > residuals[best])
+                    best = c;
+            }
+
+            ++counts[best];
+            residuals[best] = -1;
+            ++assigned;
+        }
+
+        for (std::vector<const Column*>::size_type c = 0; c != cols.size(); ++c)
+        {
+            const auto col = cols[c];
+            for (size_type i = 0, n = counts[c]; i != n; ++i)
             {
                 // avoid copy by constructing Agent object in place
-                this->agents.emplace_back(agent_no, at_no, dp_no, oz_no, dz_no, &col);
-                auto delta = static_cast<unsigned short>(i / col.get_volume() * dp_dur);
+                this->agents.emplace_back(agent_no, at_no, dp_no, oz_no, dz_no, col);
+                auto delta = static_cast<unsigned short>(static_cast<double>(i) / n * dp_dur);
 
                 auto intvl = this->cast_minute_to_interval(delta) + beg_intvl;
                 auto dep_time = dp_st + delta;
