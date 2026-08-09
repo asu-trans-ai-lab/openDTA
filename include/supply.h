@@ -1568,10 +1568,17 @@ public:
      */
     size_type get_avg_waiting_time(size_type i) const
     {
-        // S0 fix (F-6): i + delta runs past the end of cum_arr near the
-        // simulation horizon - clamp to the last recorded interval
-        auto j = std::min<size_type>(i + to_interval(1), cum_arr.size() - 1);
-        auto arr_rate = cum_arr[j] - cum_arr[i];
+        // S5b fix: the divisor must count the SAME arrivals the waiting
+        // bucket accumulates - the minute window [i, i + 1min). With the
+        // inclusive cumulative arrays that is cum_arr[i+9] - cum_arr[i-1];
+        // the previous [i, i+10] span dropped interval i's own arrivals and
+        // included the next minute's first interval, which cancels at
+        // constant rates but misprices boundary minutes at rate changes
+        // (ST02a minute 89: reported 32.8 vs true 30.75 - caught by the
+        // dual-path TT gate). S0 horizon clamp retained.
+        auto j = std::min<size_type>(i + to_interval(1) - 1, cum_arr.size() - 1);
+        auto prev = i ? cum_arr[i - 1] : 0;
+        auto arr_rate = cum_arr[j] - prev;
         return get_waiting_time(i) / std::max(static_cast<size_type>(1), arr_rate) * res;
     }
 
