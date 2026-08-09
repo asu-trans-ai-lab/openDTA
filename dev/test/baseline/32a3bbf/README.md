@@ -37,16 +37,26 @@ Visual Studio generator (`cmake -G "Visual Studio 18 2026" -A x64`).
 
 ### Known nondeterminism (defect F-6 evidence, do not "fix" silently)
 
-`link_performance_dta.csv` differs between reruns **only on rows with
-`volume == 0`**, in the `travel_time` and `speed` fields (e.g. `travel_time`
-0 vs 41130; `speed` `inf` vs 0.0146). Zero-volume rows read
-uninitialized/garbage state — this is live evidence of audit defects
-F-6 (waiting-time underflow/OOB) / F-3 family. Until fixed by its own gated
-feature:
+`link_performance_dta.csv` differs between reruns in the `travel_time` and
+`speed` fields (garbage values, e.g. `travel_time` 0 vs 41130 vs 8738;
+`speed` `inf` vs 0.0146) — reads of uninitialized state, live evidence of
+audit defects F-6 (waiting-time underflow/OOB) / F-3 family.
 
-**Regression comparison rule:** compare `link_performance_dta.csv` excluding
-`travel_time` and `speed` on rows where `volume == 0`. All other fields and all
-other files compare byte-exact.
+**Rule history:** the F01 audit observed drift only on `volume == 0` rows
+(one rerun pair). During F03c regression (2026-08-08), three same-exe reruns
+showed the same travel_time/speed drift on `volume > 0` rows as well
+(5 unstable lines across 3 runs); every other column (volume, waiting_time,
+CA, CD, density, queue) is byte-stable across reruns. The rule below reflects
+that fuller evidence.
+
+**TEMPORARY WAIVER for defect F-6 (not a permanent rule):** compare
+`link_performance_dta.csv` excluding the `travel_time` and `speed` columns on
+**all** rows. All other columns and all other files compare byte-exact
+(`trajectories.csv` is fully deterministic and remains the agent-level
+regression signal). **This waiver expires when F-6 is repaired; travel_time
+and speed then return to the byte-exact gate.** Permanently excluding the
+DNL's two most important outputs from regression is not acceptable — see
+`dev/doc/F03d_determinism_rng_audit.md` §4.
 
 ## File hashes (sha256, first 16 hex chars)
 

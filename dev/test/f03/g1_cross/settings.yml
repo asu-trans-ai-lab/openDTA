@@ -1,7 +1,7 @@
 ---
-# F03 cross-check fixture: the gold G1 case's departure_profile.csv (P1/P2
-# period_id form) must parse and pass G5 against the same period windows
-# (P1 07:00-08:00, P2 08:00-09:00).
+# F03c cross-check fixture: the gold G1 case's departure_profile.csv is used
+# as a 24h library (its period_id column is ignored with a notice); bindings
+# pair P1_STEP/P2_STEP with the matching period windows.
 user_equilibrium:
   load_columns: false
   column_gen_num: 20
@@ -25,14 +25,20 @@ demand_period:
   - period: AM1
     period_id: 1
     time_period: 0700-0800
-    departure_profile: P1_STEP
     demand:
       - file_name: demand.csv
         agent_type: auto
   - period: AM2
     period_id: 2
     time_period: 0800-0900
-    departure_profile: P2_STEP
     demand:
       - file_name: demand.csv
         agent_type: auto
+
+departure_profile_binding:
+  - period_id: 1
+    agent_type: auto
+    profile_id: P1_STEP
+  - period_id: 2
+    agent_type: auto
+    profile_id: P2_STEP

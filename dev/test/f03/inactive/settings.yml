@@ -1,5 +1,6 @@
 ---
-# F03 positive fixture: bound 2-bin profile, weights sum to exactly 1 (PASS, silent)
+# F03c fixture: inactive registry row (P2/MD) stays in the registry and the
+# audit, but its demand is not loaded and it produces no columns
 user_equilibrium:
   load_columns: false
   column_gen_num: 20
@@ -23,7 +24,19 @@ demand_period:
   - period: AM
     period_id: 1
     time_period: 0700-0800
-    departure_profile: AM_PEAK
+    active: true
     demand:
       - file_name: demand.csv
         agent_type: auto
+  - period: MD
+    period_id: 2
+    time_period: 0800-0900
+    active: false
+    demand:
+      - file_name: demand.csv
+        agent_type: auto
+
+departure_profile_binding:
+  - period_id: 1
+    agent_type: auto
+    profile_id: AM_PEAK
