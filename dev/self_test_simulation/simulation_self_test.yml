@@ -158,7 +158,8 @@ cases:
 
   - id: ST03_TANDEM
     path: cases/ST03_tandem_gold
-    enabled: false          # awaits S6
+    enabled: true           # S6 live: gold G2 natively at 12-s resolution
+                            # (c1=4, c2=3 integer); tools/check_tandem.py
     expected:
       conservation_exact: true
       cd1_ca2_tolerance_vehicle: 1
