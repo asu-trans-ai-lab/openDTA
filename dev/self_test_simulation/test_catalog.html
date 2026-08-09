@@ -1,0 +1,185 @@
+<!doctype html><html><head><meta charset="utf-8">
+<title>OpenDTA Simulation Self-Test Catalog</title>
+<style>
+ body { font-family: Segoe UI, Arial, sans-serif; margin: 28px auto; max-width: 1000px; color: #222; line-height: 1.45; }
+ h1 { border-bottom: 3px solid #2e5b8f; padding-bottom: 6px; }
+ h2 { color: #2e5b8f; margin-top: 34px; }
+ table { border-collapse: collapse; margin: 10px 0; }
+ td, th { border: 1px solid #bbb; padding: 4px 10px; font-size: 13.5px; }
+ th { background: #eef3f9; }
+ code, .eq { font-family: Consolas, monospace; background: #f5f5f5; padding: 1px 5px; border-radius: 3px; }
+ .eq { display: block; padding: 8px 14px; margin: 8px 0; border-left: 3px solid #2e5b8f; font-size: 14px; }
+ .green { background: #2e8b57; color: #fff; padding: 1px 8px; border-radius: 4px; font-size: 12px; }
+ .red { background: #c0392b; color: #fff; padding: 1px 8px; border-radius: 4px; font-size: 12px; }
+ .amber { background: #d68910; color: #fff; padding: 1px 8px; border-radius: 4px; font-size: 12px; }
+ .note { background: #fff8e6; border: 1px solid #e6d9a8; padding: 10px 14px; border-radius: 6px; font-size: 13.5px; }
+ svg { background: #fff; border: 1px solid #ddd; margin: 8px 0; }
+ figcaption { font-size: 12.5px; color: #555; }
+</style></head><body>
+
+<h1>OpenDTA Simulation Self-Test Catalog</h1>
+<p><b>Principle:</b> analytical truth &rarr; small case &rarr; production engine &rarr;
+numerical comparison &rarr; human visualization. Engine output is never frozen into
+&ldquo;gold&rdquo;. Machine-readable registry: <code>simulation_self_test.yml</code>;
+full prose: <code>TEST_CATALOG.md</code>; per-case run reports: <code>reports/</code>.</p>
+
+<h2>1. The core contract (paper Eq. (8)&ndash;(10))</h2>
+<span class="eq">TT<sub>fa</sub> = TD<sub>fa</sub> &minus; TA<sub>fa</sub> = FFTT<sub>a</sub> + t<sub>w</sub> = t<sub>F</sub> + t<sub>Q</sub>
+&nbsp;&nbsp;&nbsp;&nbsp; v&#772;<sub>fa</sub> = L<sub>a</sub> / TT<sub>fa</sub></span>
+<table>
+<tr><th>symbol</th><th>name</th><th>meaning</th></tr>
+<tr><td>v<sub>F</sub></td><td>free_flow_speed</td><td>link attribute (Level 1)</td></tr>
+<tr><td>v&#772;<sub>a</sub>(t)</td><td>experienced_average_speed</td><td>L / TT(t), aggregated by entry time (Level 2 — what the corridor heatmap shows first)</td></tr>
+<tr><td>v<sub>Q</sub></td><td>queueing_speed</td><td>congested-branch FD speed inside the physical queue (Level 3, SQM)</td></tr>
+</table>
+<span class="eq">k<sub>Q</sub> = k<sub>j</sub> &minus; &mu;/w &nbsp;&nbsp; v<sub>Q</sub> = &mu;/k<sub>Q</sub>
+&nbsp;&nbsp;&nbsp; t<sub>Q</sub> = t<sub>w</sub>&middot;v<sub>F</sub>/(v<sub>F</sub>&minus;v<sub>Q</sub>)
+&nbsp;&nbsp;&nbsp; t<sub>F</sub> = FFTT &minus; t<sub>w</sub>&middot;v<sub>Q</sub>/(v<sub>F</sub>&minus;v<sub>Q</sub>)
+&nbsp;&nbsp;&nbsp; d<sub>Q</sub> = v<sub>Q</sub>&middot;t<sub>Q</sub></span>
+<p class="note"><b>Applicability:</b> t<sub>F</sub> &gt; 0. ST02a (t<sub>w</sub> = 30 min on a
+1-mile link) violates it &mdash; it stays a point-queue-only gold. ST04a is built to satisfy it.</p>
+
+<h2>2. SQM vehicle trajectory geometry (ST04a numbers)</h2>
+<figure>
+<svg viewBox="0 0 760 320" width="100%" style="max-width:760px">
+  <line x1="70" y1="270" x2="720" y2="270" stroke="#888"/>
+  <line x1="70" y1="40" x2="70" y2="270" stroke="#888"/>
+  <text x="395" y="305" font-size="13" text-anchor="middle">time since entry (min)</text>
+  <text x="22" y="160" font-size="13" transform="rotate(-90 22 160)" text-anchor="middle">distance (mile)</text>
+  <!-- x scale: t 0..3.2 -> 70..710 (200 px/min); y: 0..1 mi -> 270..50 -->
+  <text x="70" y="286" font-size="11" text-anchor="middle">0</text>
+  <text x="270" y="286" font-size="11" text-anchor="middle">1</text>
+  <text x="470" y="286" font-size="11" text-anchor="middle">2</text>
+  <text x="670" y="286" font-size="11" text-anchor="middle">3</text>
+  <text x="60" y="54" font-size="11" text-anchor="end">1.0</text>
+  <text x="60" y="200" font-size="11" text-anchor="end">0.333</text>
+  <!-- free-flow segment: (0,0)->(t2=0.3333, 0.3333 mi): x 70->136.7, y 270->196.7 -->
+  <line x1="70" y1="270" x2="136.7" y2="196.7" stroke="#1f77b4" stroke-width="3.5"/>
+  <!-- queue segment: slope vQ=15mph=0.25 mi/min: to (3.0, 1.0): x 670, y 50 -->
+  <line x1="136.7" y1="196.7" x2="670" y2="50" stroke="#c0392b" stroke-width="3.5"/>
+  <!-- virtual free-flow continuation to t3=1 min (dashed) -->
+  <line x1="136.7" y1="196.7" x2="270" y2="50" stroke="#1f77b4" stroke-width="1.5" stroke-dasharray="6,4"/>
+  <!-- markers -->
+  <circle cx="70" cy="270" r="4" fill="#000"/><text x="76" y="262" font-size="12">t1 = TA (enter)</text>
+  <circle cx="136.7" cy="196.7" r="4" fill="#000"/><text x="143" y="206" font-size="12">t2 = t1 + t_F = 0.333 min (join back of physical queue)</text>
+  <circle cx="270" cy="50" r="4" fill="#1f77b4"/><text x="276" y="66" font-size="12" fill="#1f77b4">t3 = t1 + FFTT = 1 min (virtual free-flow exit)</text>
+  <circle cx="670" cy="50" r="4" fill="#c0392b"/><text x="600" y="38" font-size="12" fill="#c0392b">t4 = TD = 3 min</text>
+  <!-- tw brace along top -->
+  <line x1="270" y1="72" x2="670" y2="72" stroke="#555" stroke-dasharray="3,3"/>
+  <text x="470" y="90" font-size="12" text-anchor="middle">t_w = t4 &minus; t3 = 2 min (vertical-queue delay)</text>
+  <!-- dQ bracket right side -->
+  <line x1="700" y1="50" x2="700" y2="196.7" stroke="#555"/>
+  <line x1="695" y1="50" x2="705" y2="50" stroke="#555"/>
+  <line x1="695" y1="196.7" x2="705" y2="196.7" stroke="#555"/>
+  <text x="712" y="128" font-size="12">d_Q = 0.667 mi</text>
+  <!-- slope labels -->
+  <text x="86" y="240" font-size="12" fill="#1f77b4">v_F = 60 mph</text>
+  <text x="360" y="150" font-size="12" fill="#c0392b">v_Q = 15 mph (t_Q = 2.667 min)</text>
+</svg>
+<figcaption>Paper Fig. 2(d), computational form, drawn with the exact ST04a worst-vehicle numbers:
+TT = t_F + t_Q = 0.333 + 2.667 = 3.0 min = FFTT + t_w = 1 + 2. Average speed 60&middot;1/3 = 20 mph.</figcaption>
+</figure>
+
+<h2>3. Cumulative-curve framework (the oracle)</h2>
+<figure>
+<svg viewBox="0 0 760 300" width="100%" style="max-width:760px">
+  <line x1="60" y1="255" x2="720" y2="255" stroke="#888"/>
+  <line x1="60" y1="30" x2="60" y2="255" stroke="#888"/>
+  <text x="390" y="288" font-size="13" text-anchor="middle">time</text>
+  <text x="20" y="145" font-size="13" transform="rotate(-90 20 145)" text-anchor="middle">cumulative vehicles</text>
+  <!-- A_entry -->
+  <polyline fill="none" stroke="#1f77b4" stroke-width="3" points="60,255 200,215 420,80 620,45 700,40"/>
+  <!-- V = A_entry shifted right by FFTT -->
+  <polyline fill="none" stroke="#1f77b4" stroke-width="2" stroke-dasharray="6,4" points="90,255 230,215 450,80 650,45 700,42"/>
+  <!-- D: follows V until onset, then slope mu, rejoins -->
+  <polyline fill="none" stroke="#c0392b" stroke-width="3" points="90,255 235,212 555,105 660,48 700,42"/>
+  <text x="200" y="200" font-size="12" fill="#1f77b4">A_entry(t)</text>
+  <text x="330" y="150" font-size="12" fill="#1f77b4">V(t) = A_entry(t &minus; FFTT)</text>
+  <text x="470" y="180" font-size="12" fill="#c0392b">D(t) (slope &le; &mu;)</text>
+  <!-- vertical gap = queue -->
+  <line x1="430" y1="93" x2="430" y2="147" stroke="#2ca02c" stroke-width="2.5"/>
+  <text x="440" y="125" font-size="12" fill="#2ca02c">Q(t) = V &minus; D</text>
+  <!-- horizontal gap = wait -->
+  <line x1="371" y1="118" x2="470" y2="118" stroke="#d68910" stroke-width="2.5"/>
+  <text x="382" y="112" font-size="12" fill="#d68910">t_w(n)</text>
+</svg>
+<figcaption>Vertical distance between V and D = queue; horizontal distance = per-vehicle delay.
+Two independent TT paths must agree (&le; 1 interval): agent timestamps TD&minus;TA (primary), and
+FIFO inversion TT(t) = D<sup>&minus;1</sup>(A(t)) &minus; t.</figcaption>
+</figure>
+
+<h2>4. Three event clocks (ST02a example)</h2>
+<table>
+<tr><th>clock</th><th>T0</th><th>Tpeak</th><th>T3</th><th>used for</th></tr>
+<tr><td>entry-rate breakpoints</td><td>30</td><td>90</td><td>150</td><td>demand definition</td></tr>
+<tr><td>service-point continuous (+FFTT)</td><td>31</td><td>&mdash;</td><td>&mdash;</td><td>physics narration</td></tr>
+<tr><td><b>sampled minute-grid queue events</b></td><td><b>32</b></td><td><b>91</b></td><td><b>151</b></td><td><b>asserted by validators</b></td></tr>
+</table>
+<p class="note">Only the sampled clock is asserted. The other two are documented so that no one
+&ldquo;repairs&rdquo; a 2-minute discrepancy that is actually correct recording convention
+(the engine records state <i>after</i> the tick: sim row t &equiv; oracle minute t+1, verified 0.00 deviation).</p>
+
+<h2>5. Case registry</h2>
+<table>
+<tr><th>case</th><th>&lambda;(t)</th><th>N</th><th>Qmax</th><th>T0/Tpeak/T3 (sampled)</th><th>delay (veh&middot;h)</th><th>status</th></tr>
+<tr><td>ST00_F6_FREEFLOW</td><td>60/h constant</td><td>60</td><td>0</td><td>&mdash;</td><td>0</td><td><span class="green">GREEN 9/9</span> (was RED pre-S0)</td></tr>
+<tr><td>ST02a_step_gold</td><td>600/1800/600, 30/60/60 min</td><td>2700</td><td>600</td><td>32 / 91 / 151</td><td>600.00</td><td><span class="amber">A/CA green; +18 family &rarr; S2; speed &rarr; S0c</span></td></tr>
+<tr><td>ST02b_quadratic</td><td>PAQ pulse 400&rarr;2000, 30&times;5-min pieces</td><td>2602</td><td>568</td><td>32 / 91 / 143</td><td>567.48</td><td><span class="red">N +2 (F-2 ceil) &rarr; S2</span></td></tr>
+<tr><td>ST02c_cubic</td><td>skewed cubic, slow recovery</td><td>5503</td><td>2873</td><td>37 / 146 / 293</td><td>6019.02</td><td><span class="red">S2 family</span></td></tr>
+<tr><td>ST02d_twin_peaks</td><td>two pulses (t=40, t=110)</td><td>2590</td><td>224</td><td>27 / 56 / 82</td><td>172.79</td><td><span class="red">S2 family</span></td></tr>
+<tr><td>ST04a_sqm_paper</td><td>600/1500/900, 10/8/8 min</td><td>420</td><td>40</td><td>&mdash;</td><td>&mdash;</td><td><span class="amber">point-queue today; SQM layer at S5a&ndash;d</span></td></tr>
+<tr><td>ST01 / ST03</td><td>profile loading / tandem</td><td colspan="4">declared, enabled: false</td><td><span class="amber">await S1&ndash;S2 / S6</span></td></tr>
+<tr><td>L0 / L1 3-corridor</td><td colspan="5">DTALite-S legacy replay / corrected physical benchmark (trajectory regression, not analytical gold; legacy <code>lane_cap</code> vs <code>lane_capacity_in_vhc_per_hour</code> parser quirk recorded)</td><td><span class="amber">planned after S6</span></td></tr>
+</table>
+
+<h3>ST04a expected values (paper-exact)</h3>
+<table>
+<tr><th>quantity</th><th>value</th><th>formula</th></tr>
+<tr><td>Qmax</td><td>40 veh</td><td>(1500&minus;1200)&middot;8/60</td></tr>
+<tr><td>t_w max</td><td>2.0 min</td><td>Qmax / (1200/60)</td></tr>
+<tr><td>TT max</td><td>3.0 min</td><td>FFTT + t_w</td></tr>
+<tr><td>v&#772; min</td><td>20 mph</td><td>60&middot;L/TT</td></tr>
+<tr><td>v_Q</td><td>15 mph</td><td>&mu;/(k_j &minus; &mu;/w) = 1200/80</td></tr>
+<tr><td>t_Q max</td><td>2.6667 min</td><td>t_w&middot;60/45</td></tr>
+<tr><td>t_F max</td><td>0.3333 min</td><td>1 &minus; 2&middot;15/45</td></tr>
+<tr><td>d_Q max</td><td>0.6667 mi</td><td>v_Q&middot;t_Q</td></tr>
+</table>
+
+<h2>6. Red/green board — every red has an owner</h2>
+<table>
+<tr><th>observation</th><th>value</th><th>probable owner</th><th>step</th></tr>
+<tr><td>ST00 determinism + free-flow TT/speed</td><td>9/9</td><td>&mdash;</td><td><span class="green">done (S0)</span></td></tr>
+<tr><td>Integer capacity inflated +1/interval</td><td>1200/h served at 1800/h</td><td>F-3 integer branch in get_flow_cap()</td><td><span class="green">done (S0b)</span></td></tr>
+<tr><td>CA vs A_entry</td><td>0.00</td><td>healthy</td><td>&mdash;</td></tr>
+<tr><td>CD / Q offset, Qmax 618 vs 600</td><td>+18 veh transient</td><td><b>minute-batching in setup_agents</b> (departure offset quantized to whole minutes &rarr; burst arrivals) + tick ordering</td><td><b>S2</b></td></tr>
+<tr><td>Phantom early T0 (sim 2)</td><td>sampling of bursts</td><td>same</td><td><b>S2 + clock audit</b></td></tr>
+<tr><td>Delay +40 veh&middot;h</td><td>batching + bookkeeping</td><td>S2 first, re-judge at S5</td><td><b>S2 &rarr; S5</b></td></tr>
+<tr><td>ST02b loads 2604 of 2602</td><td>+2 veh</td><td><b>F-2 ceil inflation</b> (float error &times; 30 periods)</td><td><b>S2</b> (largest remainder)</td></tr>
+<tr><td>Speed stays FFS under 600-veh queue</td><td>physical inconsistency</td><td><b>S0c: terminal-link waiting-time</b> &mdash; update_waiting_time() only on the transfer branch; terminal links record zero wait</td><td><b>S0c mini-spec</b> (validator diagnostic FAILs it meanwhile)</td></tr>
+</table>
+<p class="note"><b>Attribution rule:</b> the +18 family is charged to S2 loading realization first.
+The oracle is exact for the <i>intended</i> piecewise-constant contract; the pre-S2 engine realizes
+period volumes in integer-minute batches. No queue-engine changes based on these reds until S2
+lands and residuals are re-measured.</p>
+
+<h2>7. Roadmap (S5 expanded) and gates</h2>
+<span class="eq">S2 (6-sec staggering + largest remainder) &rarr; S0c (terminal waiting fix) &rarr; S3 &rarr; S4 (ServiceDiscretizer)
+&rarr; S5a (CA/CD&rarr;TT) &rarr; S5b (agent TA/TD&rarr;TT; dual-path gate &le; 1 interval) &rarr; S5c (TT&rarr;v&#772;)
+&rarr; S5d (SQM t_F/t_Q + x_f(t) reconstruction; ST04a full) &rarr; S6 tandem &rarr; L0/L1 replay &rarr; F05 spillback</span>
+<p>Plus the <b>time-contract equivalence gate</b> once S1/S2 land: the same &lambda;(t) as
+(A) period pieces and (B) one period + departure profile must give A_A(t) &asymp; A_B(t) &le; 1 veh.</p>
+
+<h2>8. Tolerances</h2>
+<table>
+<tr><th>class</th><th>tolerance</th></tr>
+<tr><td>conservation</td><td>exact (0 vehicles)</td></tr>
+<tr><td>cumulative checkpoints</td><td>&le; 1 vehicle</td></tr>
+<tr><td>event times (sampled clock)</td><td>&le; 1 simulation interval</td></tr>
+<tr><td>Qmax / delay aggregates</td><td>&lt; 1% (target &lt; 0.1% deterministic)</td></tr>
+<tr><td>TT dual-path consistency</td><td>&le; 1 simulation interval</td></tr>
+</table>
+
+<p class="meta" style="color:#666;font-size:12.5px">Companion files: TEST_CATALOG.md (prose),
+simulation_self_test.yml (machine contract), tools/generate_analytical_cases.py (oracle),
+tools/validate_case.py (runner + per-case HTML reports with run manifest).</p>
+</body></html>

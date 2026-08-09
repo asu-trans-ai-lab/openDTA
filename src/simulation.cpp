@@ -272,6 +272,16 @@ void NetworkHandle::run_simulation()
 
                     if (agent.reaches_last_link())
                     {
+                        // S0c-1: record the ACTUAL departure - the earliest
+                        // time preset at entrance->exit transfer otherwise
+                        // survives and under-reports the terminal-link travel
+                        // time by the whole queueing delay
+                        agent.set_dep_interval(t);
+                        // S0c-2: account waiting on the terminal link exactly
+                        // as the transfer branch does (same dp_no semantics;
+                        // both call sites migrate to arrival-clock supply
+                        // lookup together when mu(t) lands - see mini-spec)
+                        link_que.update_waiting_time(t, agent.get_arr_interval(), dp_no);
                         link_que.increment_cum_dep(t);
                         ++cum_dep;
                     }

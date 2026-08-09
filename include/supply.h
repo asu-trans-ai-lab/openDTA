@@ -1489,10 +1489,13 @@ public:
      * @param i simulation interval
      * @param k index of demand period (i.e., demand period no)
      */
-    size_type get_travel_time(size_type i, unsigned short k) const
+    double get_travel_time(size_type i, unsigned short k) const
     {
-        auto tt_intvl = get_period_fftt_intvl(i);
-        return to_minute(tt_intvl) + get_avg_waiting_time(i) / SECONDS_IN_MINUTE;
+        // S0 fix (F-5): the fftt lookup is period-indexed - passing the
+        // simulation interval i here read far past the vdfps vector and
+        // produced nondeterministic travel_time/speed garbage (F-6 symptom)
+        auto tt_intvl = get_period_fftt_intvl(k);
+        return to_minute(tt_intvl) + static_cast<double>(get_avg_waiting_time(i)) / SECONDS_IN_MINUTE;
     }
 
     size_type get_virtual_arrival(size_type i, unsigned short k) const
@@ -1520,8 +1523,10 @@ public:
      */
     size_type get_avg_waiting_time(size_type i) const
     {
-        auto delta = to_interval(1);
-        auto arr_rate = cum_arr[i + delta] - cum_arr[i];
+        // S0 fix (F-6): i + delta runs past the end of cum_arr near the
+        // simulation horizon - clamp to the last recorded interval
+        auto j = std::min<size_type>(i + to_interval(1), cum_arr.size() - 1);
+        auto arr_rate = cum_arr[j] - cum_arr[i];
         return get_waiting_time(i) / std::max(static_cast<size_type>(1), arr_rate) * res;
     }
 
@@ -1551,6 +1556,15 @@ private:
     {
         double c1 = link->get_cap() / SECONDS_IN_HOUR * res;
         size_type c2 = std::floor(c1);
+        // S0b fix (F-3 integer branch): a whole-number per-interval capacity
+        // must be served exactly - the residual draw below returned +1 with
+        // certainty when c1 == c2, inflating every integer capacity by one
+        // vehicle per interval (e.g. 1200/h became 1800/h at 6-s resolution).
+        // The fractional branch keeps its legacy-replacement in S4
+        // (ServiceDiscretizer); see dev/doc/F03d_determinism_rng_audit.md #3.
+        if (c1 == c2)
+            return c2;
+
         size_type residual = uniform(0.0, 1.0) >= c1 - c2 ? 1 : 0;
 
         return c2 + residual;

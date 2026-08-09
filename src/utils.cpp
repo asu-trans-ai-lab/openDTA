@@ -1752,16 +1752,13 @@ void NetworkHandle::output_trajectories()
     writer.write_row_raw("agent_id", "o_zone_id", "d_zone_id", "dep_time", "arr_time", "trip_completed",
                          "travel_time", "PCE", "travel_distance", "node_path", "geometry", "time_sequence");
 
-    double dt = -1;
-    auto od = this->get_agent(0).get_od();
     for (const auto& agent : this->agents)
     {
-        if (agent.get_orig_dep_time() == dt && agent.get_od() == od)
-            continue;
-
-        dt = agent.get_orig_dep_time();
-        od = agent.get_od();
-
+        // S0d: every agent is emitted. The former (dep_time, OD) dedup
+        // silently suppressed same-minute same-OD vehicles - most of the
+        // fleet under batched departures - making the audit trail
+        // structurally incomplete.
+        auto dt = agent.get_orig_dep_time();
         auto at = this->get_real_time(agent.get_dest_arr_interval());
         char trip_status = agent.completes_trip() ? 'c' : 'n';
 

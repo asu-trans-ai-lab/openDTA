@@ -35,28 +35,47 @@ Visual Studio generator (`cmake -G "Visual Studio 18 2026" -A x64`).
 | DTA `trajectories.csv` (point queue) | **byte-identical** |
 | DTA `link_performance_dta.csv` | **NOT byte-identical** — see below |
 
-### Known nondeterminism (defect F-6 evidence, do not "fix" silently)
+### F-5/F-6 resolution (waiver expired at S0)
 
-`link_performance_dta.csv` differs between reruns in the `travel_time` and
-`speed` fields (garbage values, e.g. `travel_time` 0 vs 41130 vs 8738;
-`speed` `inf` vs 0.0146) — reads of uninitialized state, live evidence of
-audit defects F-6 (waiting-time underflow/OOB) / F-3 family.
+History: the F01 audit observed `travel_time`/`speed` drift on `volume == 0`
+rows; F03c regression showed the same drift on `volume > 0` rows (three
+same-exe reruns, 5 unstable lines), while every other column stayed
+byte-stable. A temporary waiver excluded the two columns from comparison.
 
-**Rule history:** the F01 audit observed drift only on `volume == 0` rows
-(one rerun pair). During F03c regression (2026-08-08), three same-exe reruns
-showed the same travel_time/speed drift on `volume > 0` rows as well
-(5 unstable lines across 3 runs); every other column (volume, waiting_time,
-CA, CD, density, queue) is byte-stable across reruns. The rule below reflects
-that fuller evidence.
+Root cause (fixed in S0, feature/simulation-self-test): `get_travel_time()`
+passed the simulation interval `i` — not the demand-period index `k` — into
+the period-indexed `vdfps` fftt lookup: an out-of-bounds heap read
+([supply.h] F-5, the visible F-6 symptom), plus `cum_arr[i + delta]` running
+past the horizon end in `get_avg_waiting_time()`. The self-test case
+`dev/self_test_simulation` ST00 reproduced the defect RED (59/60 rows wrong,
+run 3 drift) and turned GREEN with the fix.
 
-**TEMPORARY WAIVER for defect F-6 (not a permanent rule):** compare
-`link_performance_dta.csv` excluding the `travel_time` and `speed` columns on
-**all** rows. All other columns and all other files compare byte-exact
-(`trajectories.csv` is fully deterministic and remains the agent-level
-regression signal). **This waiver expires when F-6 is repaired; travel_time
-and speed then return to the byte-exact gate.** Permanently excluding the
-DNL's two most important outputs from regression is not acceptable — see
-`dev/doc/F03d_determinism_rng_audit.md` §4.
+**S0b follow-up (same branch):** the analytical self-test bank
+(dev/self_test_simulation ST02 cases) caught `get_flow_cap()` inflating every
+whole-number per-interval capacity by one vehicle (F-3 integer branch: a
+1200/h link was served at 1800/h). Fixed to serve declared capacity exactly;
+`link_performance_dta.csv` references re-frozen once more (Two_Corridor link
+3, cap 3000/h, now discharges 50/min instead of the inflated 60/min).
+UE outputs and trajectories.csv were byte-unchanged by S0b.
+
+**S0c/S0d re-freeze (approved mini-spec, feature/simulation-self-test):**
+the terminal-link branch now records the actual departure
+(`set_dep_interval(t)`) and accounts waiting time, and
+`output_trajectories()` emits every agent (the (dep_time, OD) dedup silently
+suppressed same-minute vehicles — Two_Corridor trajectories grew from 61 to
+7001 rows). Both sim variants' `trajectories.csv` and
+`link_performance_dta.csv` re-frozen accordingly; UE outputs byte-unchanged;
+determinism re-verified (2× byte-identical). Gate evidence: ST00c micro case
+(gold per-agent TT 1.0/1.1/1.2 min) RED→GREEN; the oracle-based S0c
+diagnostic passes on ST02a (0 of 115 congested minutes report free-flow TT).
+
+**Comparison rule (waiver deleted):** ALL columns of every output file,
+including `travel_time` and `speed`, compare **byte-exact**. The
+`link_performance_dta.csv` references below were re-frozen with the S0
+engine (previous stored values in those two columns were garbage; UE
+outputs and trajectories.csv were unaffected by S0 and keep their original
+frozen bytes). S0-engine determinism verified: point queue 3×, kinematic
+wave 2×, byte-identical.
 
 ## File hashes (sha256, first 16 hex chars)
 
@@ -66,11 +85,13 @@ BB277B8C66F0B879    145096  Chicago_Sketch_default/link_performance_ue.csv
 C69F13AC21A1D545       223  Two_Corridor_default/columns.csv
 9701BD5B430DB436       280  Two_Corridor_default/link_performance_ue.csv
 7A5007EAC248FD49       175  Two_Corridor_sim_kinematic_wave/output/columns.csv
-D39CA49BEA1FFA60      4232  Two_Corridor_sim_kinematic_wave/output/link_performance_dta.csv  (zero-volume rows nondeterministic)
+D8F9B047EA85FF21      4400  Two_Corridor_sim_kinematic_wave/output/link_performance_dta.csv  (re-frozen at S0c)
+D6328AAA96C77AB6    766068  Two_Corridor_sim_kinematic_wave/output/trajectories.csv          (re-frozen at S0d: all 7000 agents)
 1D54E57A8162EC0B       254  Two_Corridor_sim_kinematic_wave/output/link_performance_ue.csv
 492CE066581BF70C      6657  Two_Corridor_sim_kinematic_wave/output/trajectories.csv
 7A5007EAC248FD49       175  Two_Corridor_sim_point_queue/output/columns.csv
-E9C607F531BC31ED      4225  Two_Corridor_sim_point_queue/output/link_performance_dta.csv     (zero-volume rows nondeterministic)
+D8F9B047EA85FF21      4400  Two_Corridor_sim_point_queue/output/link_performance_dta.csv     (re-frozen at S0c; identical to KW in this case)
+D6328AAA96C77AB6    766068  Two_Corridor_sim_point_queue/output/trajectories.csv             (re-frozen at S0d: all 7000 agents)
 1D54E57A8162EC0B       254  Two_Corridor_sim_point_queue/output/link_performance_ue.csv
 492CE066581BF70C      6657  Two_Corridor_sim_point_queue/output/trajectories.csv
 ```
