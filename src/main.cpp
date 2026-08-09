@@ -39,6 +39,10 @@ try
     // after demand loading so the G5 audit can report period demand totals
     nh.read_departure_profiles();
 
+    // S1: departure-bin demand audit table (the S2 vehicleization contract)
+    if (nh.enables_output())
+        nh.output_departure_bin_demand();
+
     mini_timer.stop();
     mini_timer.broadcast("OpenDTA loads input in ");
 

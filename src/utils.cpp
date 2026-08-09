@@ -1745,6 +1745,55 @@ void NetworkHandle::output_link_performance_ue()
     std::cout << "check " << this->m_link_perf_ue_filename << " in " << this->output_dir <<  " for link performance under UE\n";
 }
 
+// S1: project the G5 conditional distributions onto per-bin demand rows,
+// D_k = D * p~_k with sum_k D_k == D exactly. This table is the input
+// contract S2 vehicleization consumes (largest remainder over `demand`).
+// No bindings -> no file, behavior unchanged.
+void NetworkHandle::output_departure_bin_demand()
+{
+    if (this->dep_profiles.empty())
+        return;
+
+    auto writer = miocsv::Writer(output_dir.string() + '/' + this->m_dep_bin_filename);
+    writer.write_row_raw("period_id", "agent_type", "profile_id", "bin_start_clock",
+                         "bin_width_sec", "conditional_weight", "demand");
+
+    char buf[32];
+    for (const auto dp_prof : this->dep_profiles)
+    {
+        // loaded demand for this (period, agent): the same matching rule the
+        // G5 audit uses in read_departure_profiles()
+        double demand = 0;
+        for (const auto dp : this->dps)
+        {
+            if (dp->get_period_id() != dp_prof->get_period_id())
+                continue;
+
+            if (!dp_prof->get_agent_type().empty()
+                && dp->get_demands().front().get_agent_type_name() != dp_prof->get_agent_type())
+                continue;
+
+            auto it = this->demand_totals.find(dp->get_no());
+            if (it != this->demand_totals.end())
+                demand += it->second;
+        }
+
+        for (const auto& b : dp_prof->get_bins())
+        {
+            writer.append(dp_prof->get_period_id());
+            writer.append(dp_prof->get_agent_type().empty() ? "(all)"s : dp_prof->get_agent_type());
+            writer.append(dp_prof->get_id());
+            writer.append(format_clock(b.start_min));
+            writer.append(static_cast<int>(b.width_min * SECONDS_IN_MINUTE + 0.5));
+            // full precision so downstream conservation checks hold to 1e-9
+            std::snprintf(buf, sizeof(buf), "%.15g", b.weight);
+            writer.append(std::string{buf});
+            std::snprintf(buf, sizeof(buf), "%.15g", demand * b.weight);
+            writer.append(std::string{buf}, '\n');
+        }
+    }
+}
+
 void NetworkHandle::output_trajectories()
 {
     auto writer = miocsv::Writer(this->output_dir.string() + '/' + this->m_traj_filename);
