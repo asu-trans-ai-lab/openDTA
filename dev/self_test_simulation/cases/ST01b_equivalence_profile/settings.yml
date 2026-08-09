@@ -1,0 +1,48 @@
+---
+# ST01b: time-contract equivalence gate. The ST02a lambda(t)
+# (600/1800/600 veh/h over 30/60/60 min) expressed as ONE demand period
+# (07:00-09:30, D = 2700) plus a 3-bin departure profile
+# (weights 300/1800/600 over 2700 = 1/9, 6/9, 2/9). Under S2c the engine
+# must reproduce the period-pieces representation: CA vs the ST02a expected
+# A_entry <= 1 veh at every minute. Same 1-mile mu=1200 link as ST02a; drain
+# covered by the period extending to 09:30 (T3 = 09:31... queue clears by
+# 151 min = 09:31 - the period end at 150 min truncates the last drain
+# minute, so the gate compares the loading curve (CA), not the discharge.
+user_equilibrium:
+  load_columns: false
+  column_gen_num: 20
+  column_opd_num: 20
+
+simulation:
+  enable: true
+  resolution: 6
+  traffic_flow_model: point_queue
+
+agent_type:
+  - type: a
+    name: auto
+    flow_type: 0
+    pce: 1
+    vot: 10
+    free_speed: 60
+    use_link_ffs: true
+
+demand_period:
+  - period: DAY
+    period_id: 1
+    time_period: 0700-0930
+    demand:
+      - file_name: demand.csv
+        agent_type: auto
+
+  - period: DRAIN
+    period_id: 2
+    time_period: 0930-1030
+    demand:
+      - file_name: demand_zero.csv
+        agent_type: auto
+
+departure_profile_binding:
+  - period_id: 1
+    agent_type: auto
+    profile_id: STEP_ABC

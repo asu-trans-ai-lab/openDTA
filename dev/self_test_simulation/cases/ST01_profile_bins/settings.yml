@@ -8,7 +8,7 @@ user_equilibrium:
   column_opd_num: 20
 
 simulation:
-  enable: false
+  enable: true
   resolution: 6
   traffic_flow_model: point_queue
 
@@ -27,6 +27,13 @@ demand_period:
     time_period: 0700-0800
     demand:
       - file_name: demand.csv
+        agent_type: auto
+
+  - period: DRAIN
+    period_id: 2
+    time_period: 0800-0830
+    demand:
+      - file_name: demand_zero.csv
         agent_type: auto
 
 departure_profile_binding:

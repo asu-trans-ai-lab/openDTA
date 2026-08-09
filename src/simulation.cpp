@@ -154,6 +154,26 @@ void NetworkHandle::setup_agents()
         auto dp_st = this->dps[dp_no]->get_start_time();
         auto dp_intvls = this->cast_minute_to_interval(dp_dur);
 
+        // S2c: profile-consuming vehicleization. When this (period, agent)
+        // has a bound conditional distribution (F03c), departures follow the
+        // classical quantile inverse-CDF (DTALite get_deparure_time_in_min):
+        // r = i/n -> bin s with F(s-1) <= r < F(s) -> within-bin linear
+        // interpolation. Deterministic at every n (frozen deviation from
+        // classical's RNG small-sample rule). Unbound -> S2b uniform.
+        const DepartureProfile* profile = nullptr;
+        const auto& at_name = this->ats[at_no]->get_name();
+        for (const auto dpr : this->dep_profiles)
+        {
+            if (dpr->get_period_id() != this->dps[dp_no]->get_period_id())
+                continue;
+
+            if (dpr->get_agent_type().empty() || dpr->get_agent_type() == at_name)
+            {
+                profile = dpr;
+                break;
+            }
+        }
+
         // S2a: conserved integer vehicleization by largest remainder over the
         // column vector - the sum of agents equals round(sum of column
         // volumes) exactly. The previous per-column ceil inflated counts
@@ -208,6 +228,31 @@ void NetworkHandle::setup_agents()
                 // is that behavior at the engine's native resolution.
                 auto intvl = beg_intvl + i * dp_intvls / n;
                 auto dep_time = dp_st + static_cast<double>(i) * dp_dur / n;
+
+                if (profile)
+                {
+                    // S2c: inverse CDF over the conditional bins
+                    auto r = static_cast<double>(i) / n;
+                    double cum = 0;
+                    double offset = 0;
+                    for (const auto& b : profile->get_bins())
+                    {
+                        if (r < cum + b.weight)
+                        {
+                            offset = b.start_min + (r - cum) / b.weight * b.width_min
+                                     - dp_st;
+                            break;
+                        }
+
+                        cum += b.weight;
+                        // numerical tail: place at the end of the last bin
+                        offset = b.start_min + b.width_min - dp_st;
+                    }
+
+                    intvl = beg_intvl + static_cast<size_type>(
+                        offset * SECONDS_IN_MINUTE / this->simu_res);
+                    dep_time = dp_st + offset;
+                }
 
                 auto& agent = this->get_agent(agent_no);
                 agent.set_arr_interval(intvl);

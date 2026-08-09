@@ -41,12 +41,15 @@ cases:
 
   - id: ST01_PROFILE_LOADING
     path: cases/ST01_profile_bins
-    enabled: partial        # S1 live (bin demand via tools/check_bin_demand.py);
-                            # final_CA awaits S2 (agents still ignore profiles)
+    enabled: true           # S1 bins + S2c profile-consuming loading both live
+                            # (tools/check_bin_demand.py + check_profile_loading.py)
     expected:
       total_demand: 1000
       bin_demands: [400, 600]   # departure_bin_demand.csv, exact to 1e-9
-      final_CA: 1000            # S2 gate
+      final_CA: 1000            # live since S2c (CA follows 1000*F(t) <= 1 veh)
+    # ST01b_equivalence_profile: the time-contract equivalence gate - the
+    # ST02a lambda(t) as ONE period + 3-bin profile reproduces the
+    # period-pieces representation to <= 1 veh at every minute.
     # Case B: dev/test/f03/transims - 8 bindings, window-clipped bin counts
     # (AM 16 / MD 20 / PM 16 / NT 20), each summing exactly to 1000.
 
