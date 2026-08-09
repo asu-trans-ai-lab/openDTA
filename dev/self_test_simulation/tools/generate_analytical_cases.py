@@ -34,6 +34,7 @@ MU_VPH = 1200          # 2 veh per 6-s interval: integer service path
 FFTT_MIN = 1.0         # 1 mile at 60 mph
 START_HHMM = 7 * 60    # 07:00, minute 0 of the simulation clock
 PIECE_MIN = 5          # discretization of smooth profiles
+SECONDS_IN_MIN_GRID = 10   # 6-s intervals per minute
 
 
 def pieces_gold_a():
@@ -147,51 +148,86 @@ CASES = {
 
 
 def solve_oracle(pieces, mu_vph=MU_VPH):
-    """Exact fluid point-queue on a 1-min grid (piecewise-linear cumulatives).
-    Returns per-minute rows and summary events."""
+    """Exact integer point-queue oracle on the 6-s grid, mirroring the
+    engine's S2b loading and recording conventions:
+
+    - arrivals reproduce setup_agents() exactly: vehicle i of a period with
+      n vehicles over m intervals enters at interval i*m//n (integer math);
+    - cumulative arrays are inclusive of the tick (the engine records state
+      AFTER processing the interval);
+    - service: cap = mu*6/3600 vehicles per interval (integer path);
+    - queue = A_service - D at the same interval (the engine's queue column).
+
+    Expected minute rows sample the interval grid at j = 10*minute, so the
+    validator compares sim row k to expected row k with no clock shift.
+    Everything is integer arithmetic: the oracle is EXACT for the S2b
+    engine, and any deviation is an engine defect by construction.
+    """
+    ipm = SECONDS_IN_MIN_GRID  # intervals per minute (10 at 6-s resolution)
     total_min = sum(d for d, _ in pieces)
-    # entrance arrival rate per minute
+    horizon_min = total_min + 180  # drain buffer
+    H = horizon_min * ipm
+
+    arr = [0] * (H + 1)
+    beg = 0
+    for dur, vol in pieces:
+        m = dur * ipm
+        for i in range(int(vol)):
+            arr[beg + i * m // int(vol)] += 1 if vol else 0
+
+        beg += m
+
+    fftt_i = int(round(FFTT_MIN * ipm))
+    cap = mu_vph * 6 // 3600
+    assert mu_vph * 6 % 3600 == 0, "mu must be an integer per 6-s interval"
+
+    ca = [0] * (H + 1)      # inclusive cumulative entrance arrivals
+    cq = [0] * (H + 1)      # inclusive cumulative exit-queue (service point)
+    d = [0] * (H + 1)       # inclusive cumulative departures
+    run = 0
+    for j in range(H + 1):
+        run += arr[j]
+        ca[j] = run
+        cq[j] = ca[j - fftt_i] if j >= fftt_i else 0
+        prev = d[j - 1] if j else 0
+        d[j] = min(cq[j], prev + cap)
+
+    q = [cq[j] - d[j] for j in range(H + 1)]
+
+    # minute-sampled series (row k == engine output row k at interval 10k)
     lam = []
     for dur, vol in pieces:
-        lam += [vol / dur] * dur
+        lam += [vol / dur * 60.0] * dur
 
-    horizon = total_min + 180  # drain buffer
-    lam += [0.0] * (horizon - total_min)
+    lam += [0.0] * (horizon_min - total_min)
+    s = {
+        "a_entry": [ca[m * ipm] for m in range(horizon_min + 1)],
+        "a_service": [cq[m * ipm] for m in range(horizon_min + 1)],
+        "d": [d[m * ipm] for m in range(horizon_min + 1)],
+        "q": [q[m * ipm] for m in range(horizon_min + 1)],
+    }
 
-    a_entry = [0.0]
-    for r in lam:
-        a_entry.append(a_entry[-1] + r)
-
-    shift = int(round(FFTT_MIN))
-    a_service = [a_entry[max(0, t - shift)] for t in range(horizon + 1)]
-
-    mu_min = mu_vph / 60.0
-    d = [0.0]
-    for t in range(1, horizon + 1):
-        d.append(min(a_service[t], d[-1] + mu_min))
-
-    q = [a_service[t] - d[t] for t in range(horizon + 1)]
-
-    t0 = next((t for t in range(horizon + 1) if q[t] > 1e-9), None)
+    qs = s["q"]
+    t0 = next((m for m in range(len(qs)) if qs[m] > 1e-9), None)
     t3 = None
     tpeak = 0
     qmax = 0.0
     if t0 is not None:
-        for t in range(t0, horizon + 1):
-            if q[t] > qmax:
-                qmax, tpeak = q[t], t
+        for m in range(t0, len(qs)):
+            if qs[m] > qmax:
+                qmax, tpeak = qs[m], m
 
-        t3 = next((t for t in range(tpeak, horizon + 1) if q[t] < 1e-9), None)
+        t3 = next((m for m in range(tpeak, len(qs)) if qs[m] < 1e-9), None)
 
-    delay_veh_min = sum((q[t - 1] + q[t]) / 2 for t in range(1, horizon + 1))
+    delay_veh_min = sum(q) / ipm  # rectangle rule on the 6-s grid
     return {
-        "horizon": horizon,
+        "horizon": horizon_min,
         "lam": lam,
-        "a_entry": a_entry,
-        "a_service": a_service,
-        "d": d,
-        "q": q,
-        "total_vehicles": a_entry[-1],
+        "a_entry": s["a_entry"],
+        "a_service": s["a_service"],
+        "d": s["d"],
+        "q": s["q"],
+        "total_vehicles": ca[-1],
         "t0": t0,
         "tpeak": tpeak if t0 is not None else None,
         "t3": t3,
@@ -292,9 +328,13 @@ if __name__ == "__main__":
         oracle = solve_oracle(pieces, mu)
 
         # the engine simulates only through the last demand period: append
-        # zero-volume drain periods so the queue clears inside the horizon
+        # zero-volume drain periods so (a) the queue clears inside the
+        # horizon AND (b) the last minute's arrivals traverse the FFTT and
+        # discharge before the final sampled row (without (b), vehicles
+        # entering in the final intervals sit past the last sample and read
+        # as a phantom conservation loss - found via ST02d/ST02f)
         demand_min = sum(d for d, _ in pieces)
-        need = (oracle["t3"] or demand_min) + 10
+        need = max((oracle["t3"] or 0) + 10, demand_min + int(FFTT_MIN) + 5)
         while demand_min < need:
             pieces.append((60, 0))
             demand_min += 60

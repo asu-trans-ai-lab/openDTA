@@ -1,0 +1,3 @@
+period_id,agent_type,profile_id,bin_start_clock,bin_width_sec,conditional_weight,demand
+1,auto,AM_PEAK,07:00,1800,0.4,400
+1,auto,AM_PEAK,07:30,1800,0.6,600

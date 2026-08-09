@@ -106,11 +106,9 @@ def validate(case_id, exe):
     out = run_engine(case_id, exe)
     sim = read_sim(out)
 
-    # align to the engine's after-the-tick recording: drop oracle minute 0 so
-    # oracle index t corresponds to sim row t (see read_sim docstring)
-    for key in ("lambda_vph", "A_entry", "A_service", "D", "Q"):
-        series[key] = series[key][1:]
-
+    # since S2b the expected files are generated on the 6-s grid with the
+    # engine's inclusive-of-the-tick recording built in: sim row k compares
+    # to expected row k directly, no clock shift
     n = min(len(sim["CA"]), len(series["A_entry"]) - 1)
     checks = []
 
@@ -135,17 +133,17 @@ def validate(case_id, exe):
     check(f"max |Q - Q*| <= {TOL_CUMULATIVE} veh", dev_q <= TOL_CUMULATIVE, f"{dev_q:.2f}")
 
     # events
-    for name, gold_key, sim_t in (
-            ("queue onset T0", "T0_min", first_crossing(sim["Q"], up=True)),
-            ("queue clearance T3", "T3_min", first_crossing(sim["Q"], up=False))):
-        gold_t = summary[gold_key]
+    # events detected by the SAME rule on both series (identical convention)
+    for name, gold_t, sim_t in (
+            ("queue onset T0", first_crossing(series["Q"][:n], up=True),
+             first_crossing(sim["Q"], up=True)),
+            ("queue clearance T3", first_crossing(series["Q"][:n], up=False),
+             first_crossing(sim["Q"], up=False))):
         if gold_t is None:
             continue
 
-        # sim row t is oracle minute t+1 (after-the-tick recording)
-        sim_min = sim_t + 1 if sim_t is not None else None
-        ok = sim_min is not None and abs(sim_min - gold_t) <= TOL_EVENT_MIN
-        check(f"{name} within {TOL_EVENT_MIN:.0f} min", ok, f"sim {sim_min} vs gold {gold_t:.0f}")
+        ok = sim_t is not None and abs(sim_t - gold_t) <= TOL_EVENT_MIN
+        check(f"{name} within {TOL_EVENT_MIN:.0f} min", ok, f"sim {sim_t} vs gold {gold_t}")
 
     qmax_sim = max(sim["Q"][:n]) if n else 0
     qmax_gold = summary["Qmax_veh"]
@@ -162,13 +160,21 @@ def validate(case_id, exe):
     # oracle says a cohort waits more than one output interval, the reported
     # travel time must exceed FFTT. (The old "queue > 100" form was vacuously
     # true on small cases like ST04a - Qmax 58 never crossed 100.)
+    # reported TT is BY ENTRY COHORT (waiting accrues to the arrival minute),
+    # so the diagnostic applies only to congested minutes that HAVE entrants:
+    # drain-period minutes with a standing queue but zero arrivals correctly
+    # report the free-flow default (found via ST02c's 143 drain minutes)
     fftt = summary["fftt_min"]
     mu_min = summary["mu_vph"] / 60.0
-    congested = [t for t in range(n) if series["Q"][t] / mu_min > 1.0]
+    # entrant qualification uses the FORWARD window [t, t+1) to match the
+    # engine's get_avg_waiting_time (arr_rate = CA[t+1min] - CA[t])
+    congested = [t for t in range(n - 1)
+                 if series["Q"][t] / mu_min > 1.0
+                 and series["A_entry"][t + 1] - series["A_entry"][t] > 0]
     bad = sum(1 for t in congested if sim["TT"][t] <= fftt + 1e-9)
-    check("S0c diagnostic: TT > FFTT whenever oracle wait > 1 min",
+    check("S0c diagnostic: TT > FFTT on congested minutes with entrants",
           bad == 0,
-          f"{bad} of {len(congested)} oracle-congested minutes report free-flow TT")
+          f"{bad} of {len(congested)} qualifying minutes report free-flow TT")
 
     passed = all(ok for _, ok, _ in checks)
     write_html(case_id, series, summary, sim, n, checks, passed)
@@ -364,8 +370,10 @@ def main():
         exe = args.pop()
 
     if args and args[0] == "--all":
-        case_ids = sorted(d for d in os.listdir(os.path.join(ROOT, "cases"))
-                          if d.startswith(("ST02", "ST04")))
+        case_ids = sorted(
+            d for d in os.listdir(os.path.join(ROOT, "cases"))
+            if d.startswith(("ST02", "ST04"))
+            and os.path.exists(os.path.join(ROOT, "expected", f"{d}_expected.csv")))
     else:
         case_ids = args[:1]
 

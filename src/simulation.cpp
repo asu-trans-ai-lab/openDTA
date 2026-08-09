@@ -152,6 +152,7 @@ void NetworkHandle::setup_agents()
         auto beg_intvl = this->get_beg_simulation_interval(dp_no);
         auto dp_dur = this->dps[dp_no]->get_duration();
         auto dp_st = this->dps[dp_no]->get_start_time();
+        auto dp_intvls = this->cast_minute_to_interval(dp_dur);
 
         // S2a: conserved integer vehicleization by largest remainder over the
         // column vector - the sum of agents equals round(sum of column
@@ -197,10 +198,16 @@ void NetworkHandle::setup_agents()
             {
                 // avoid copy by constructing Agent object in place
                 this->agents.emplace_back(agent_no, at_no, dp_no, oz_no, dz_no, col);
-                auto delta = static_cast<unsigned short>(static_cast<double>(i) / n * dp_dur);
 
-                auto intvl = this->cast_minute_to_interval(delta) + beg_intvl;
-                auto dep_time = dp_st + delta;
+                // S2b: departure realization at simulation-interval
+                // resolution - uniform over the period by exact integer
+                // arithmetic (the previous whole-minute truncation released
+                // each minute's demand as one burst: the +18 family).
+                // Classical DTALite generates continuous fractional-minute
+                // departures via the v/N quantile; interval-uniform placement
+                // is that behavior at the engine's native resolution.
+                auto intvl = beg_intvl + i * dp_intvls / n;
+                auto dep_time = dp_st + static_cast<double>(i) * dp_dur / n;
 
                 auto& agent = this->get_agent(agent_no);
                 agent.set_arr_interval(intvl);

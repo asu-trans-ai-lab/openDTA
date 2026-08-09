@@ -1,19 +1,19 @@
-"""ST00c agent-level TA/TD gate (defects S0c-1/S0c-2/S0d).
+"""ST00c agent-level TA/TD gate (defects S0c-1/S0c-2/S0d; gold regenerated
+at S2b - see the case settings.yml for the justification).
 
-The primary truth for time-dependent travel time is the per-agent trajectory:
-TT_f = TD_f - TA_f. This gate asserts it directly on the three-vehicle micro
-case - never through the aggregate waiting_time[] table.
+Primary truth for time-dependent travel time is the per-agent trajectory:
+TT_f = TD_f - TA_f, asserted directly - never via the aggregate waiting
+table.
 
-Gold (1-mile 60-mph link, FFTT = 1.0 min; mu = 600/h = exactly 1 veh per
-6-s interval; three vehicles all entering in interval 0):
+Gold (1-mile 60-mph link, FFTT = 1.0 min = 10 intervals; mu = 600/h =
+exactly 1 veh per 6-s interval; 30 vehicles uniformly staggered over the
+1-minute period by S2b => arrivals 3 per interval, TA_i = i // 3):
 
-    agent 1: TT = 1.0 min      agent 2: TT = 1.1 min      agent 3: TT = 1.2 min
+    TD_i = 10 + i  (FIFO, 1/interval from interval 10)
+    TT_i = (10 + i - i // 3) / 10 minutes     (TT_0 = 1.0 ... TT_29 = 3.0)
 
-Expected RED on the pre-S0c engine, on two independent counts:
-  1. S0d: output_trajectories() dedups agents by (dep_time, OD)
-     (utils.cpp ~1759) -> only 1 of 3 vehicles appears at all;
-  2. S0c-1: the reaches_last_link branch never calls set_dep_interval(t),
-     so the reported TT stays at FFTT regardless of queueing.
+The gate asserts: all 30 vehicles present (S0d), the full sorted TT list
+(S0c-1/S0c-2 + S2b staggering), and total delay = sum(TT) - 30.0 min.
 
 Exit 0 = PASS, 1 = FAIL.
 """
@@ -28,8 +28,10 @@ EXE = os.path.join(ROOT, "..", "..", "build", "Release", "OpenDTA.exe")
 CASE = os.path.join(ROOT, "cases", "ST00c_terminal_three_vehicles")
 OUT = os.path.join(ROOT, "output", "ST00c")
 
-GOLD_TT_MIN = [1.0, 1.1, 1.2]
-TOL_MIN = 0.1  # one 6-s simulation interval
+N = 30
+GOLD_TT_MIN = sorted((10 + i - i // 3) / 10.0 for i in range(N))
+GOLD_TOTAL_DELAY = sum(GOLD_TT_MIN) - 1.0 * N
+TOL_MIN = 0.01
 
 
 def main():
@@ -54,21 +56,22 @@ def main():
 
         print(("  ok    " if ok else "  FAIL  ") + what)
 
-    print("ST00c agent-level TA/TD gate")
-    check(len(rows) == 3,
-          f"all 3 vehicles present in trajectories.csv "
-          f"(found {len(rows)}; fewer means the (dep_time, OD) dedup - S0d)")
+    print("ST00c agent-level TA/TD gate (S2b gold)")
+    check(len(rows) == N,
+          f"all {N} vehicles present in trajectories.csv "
+          f"(found {len(rows)}; fewer means the S0d dedup returned)")
 
     tts = sorted(float(r["travel_time"]) for r in rows)
-    for i, gold in enumerate(GOLD_TT_MIN[: len(tts)]):
-        check(abs(tts[i] - gold) <= TOL_MIN,
-              f"agent {i + 1} TT {tts[i]:.2f} min vs gold {gold:.1f} "
-              f"(equal-to-FFTT across the board means S0c-1)")
+    bad = sum(1 for a, b in zip(tts, GOLD_TT_MIN[: len(tts)])
+              if abs(a - b) > TOL_MIN)
+    check(bad == 0,
+          f"per-agent TT matches gold ladder 1.0..3.0 min ({bad} mismatches; "
+          f"flat-at-FFTT means S0c-1, wrong ladder means S2b staggering)")
 
-    if len(tts) == 3:
-        total_delay = sum(tts) - 3.0
-        check(abs(total_delay - 0.3) <= 2 * TOL_MIN,
-              f"total delay {total_delay:.2f} min vs gold 0.30")
+    if len(tts) == N:
+        total_delay = sum(tts) - 1.0 * N
+        check(abs(total_delay - GOLD_TOTAL_DELAY) <= N * TOL_MIN,
+              f"total delay {total_delay:.2f} min vs gold {GOLD_TOTAL_DELAY:.2f}")
 
     print(f"{'PASS' if failed == 0 else 'FAIL'} ({failed} failing checks)")
     return 0 if failed == 0 else 1

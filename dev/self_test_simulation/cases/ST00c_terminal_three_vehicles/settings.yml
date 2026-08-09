@@ -1,16 +1,17 @@
 ---
-# ST00c: terminal-link actual-departure micro gate (defect S0c).
-# 1-mile 60-mph link (FFTT = 1 min = 10 intervals), capacity 600/h = exactly
-# 1 veh per 6-s interval (integer service path). Three vehicles all depart in
-# interval 0 (volume 3 over a 1-minute period, integer-minute batching puts
-# them together - which is exactly what this gate needs).
-# Gold per-agent truth (intervals): exit-queue-ready at 10; served 1/interval:
-#   agent 1: TD = interval 10  -> TT = 1.0 min
-#   agent 2: TD = interval 11  -> TT = 1.1 min
-#   agent 3: TD = interval 12  -> TT = 1.2 min
-# Pre-S0c engine never writes the actual terminal departure back
-# (set_dep_interval missing in the reaches_last_link branch), so all three
-# report TT = 1.0 min. This case must be RED until S0c lands.
+# ST00c: terminal-link actual-departure micro gate (defects S0c/S0d), gold
+# REGENERATED at S2b with documented justification: the original 3-vehicle
+# gold (TT 1.0/1.1/1.2) relied on minute batching to co-locate arrivals in
+# interval 0; under S2b interval staggering they spread to 0/3/6 with no
+# queue, and the case would stop testing FIFO ordering.
+# Redesign: 30 vehicles over the 1-minute period, capacity 600/h = exactly
+# 1 veh per 6-s interval. S2b staggering: arrivals 3 per interval
+# (TA_i = i/3 for i = 0..29); service 1/interval from interval 10:
+#   TD_i = 10 + i   ->   TT_i = (10 + i - i/3) intervals = (10+i-i/3)/10 min
+# (i integer division). TT_0 = 1.0 min ... TT_29 = 3.0 min; total delay
+# = sum(TT_i) - 30 = 29.0 intervals... asserted per agent from
+# trajectories.csv by tools/check_agent_timestamps.py. Also asserts the
+# staggering itself (arrival pattern 3/interval).
 user_equilibrium:
   load_columns: false
   column_gen_num: 20
