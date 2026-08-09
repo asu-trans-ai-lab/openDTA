@@ -1,0 +1,4 @@
+period_id,agent_type,profile_id,bin_start_clock,bin_width_sec,conditional_weight,demand
+1,auto,STEP_ABC,07:00,1800,0.111111111111,299.9999999997
+1,auto,STEP_ABC,07:30,3600,0.666666666667,1800.0000000009
+1,auto,STEP_ABC,08:30,3600,0.222222222222,599.9999999994

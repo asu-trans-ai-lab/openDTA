@@ -1,3 +1,3 @@
 link_id,from_node_id,to_node_id,time_period,volume,travel_time,speed,VOC,geometry
-1,1,2,AM,1000,1.00089,59.9465,0.277778,"LINESTRING (0.0 0.0, 1.0 0.0)"
+1,1,2,DAY,2700,4.84434,12.3856,2.25,"LINESTRING (0.0 0.0, 1.0 0.0)"
 1,1,2,DRAIN,0,1,60,0,"LINESTRING (0.0 0.0, 1.0 0.0)"
