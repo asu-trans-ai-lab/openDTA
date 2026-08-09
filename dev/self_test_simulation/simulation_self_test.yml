@@ -1,7 +1,7 @@
 ---
 # OpenDTA Simulation Self-Test contract (the release contract for the DNL).
 # Expected truth lives HERE and in expected/, never in production settings.yml.
-# Harness: self_test_simulation.cpp (thin driver over production classes —
+# Harness: self_test_simulation.cpp (thin driver over production classes -
 # it re-implements no physics; v1 mirrors these assertions in code, YAML
 # parsing of this file is a planned harness upgrade).
 suite:
@@ -104,7 +104,7 @@ cases:
     # SQM applicability requires tF > 0; ST02a (tw = 30 min on a 1-mi link)
     # deliberately violates it and stays a point-queue-only gold.
 
-    - id: ST02F_KNOOP_STEP
+  - id: ST02F_KNOOP_STEP
     path: cases/ST02f_knoop_step
     enabled: partial            # A/D/Q gates run; +18 family red until S2b
     # Knoop 3rd ed. sec. 2.6 x0.9 (mu = 3600): oracle Qmax = 450 veh,
@@ -125,6 +125,20 @@ cases:
   - id: ST08_LANEDROP_CHAIN
     path: cases/ST08_lanedrop_chain
     enabled: characterization   # invariants live now: bottleneck == 1800/h; F05: front speeds
+  - id: ST05A_SPATIAL_SPILLBACK
+    path: cases/ST05a_spatial_spillback
+    enabled: true               # GREEN: tools/check_two_link.py (14/14 with ST05b)
+    # SQ receiving CA2[t-1]-CD2[t-1] > 40; occ2 max 44 (<= 46 bound),
+    # L1 spillback 300 veh; conservation 900; curves vs exact fluid oracle
+    # within the pre-S2b minute-batch tolerance (CA dev 0, CD dev <= 24).
+  - id: ST05B_KW_BACKWAVE
+    path: cases/ST05b_kw_backwave
+    enabled: true               # GREEN
+    # KW receiving CA2[t-1]-CD2[t-1-10] > 40 = completed classical sketch =
+    # LTM A <= D(t-BWTT)+kj*L. Physical occ2 max 24 (backwave reservation),
+    # blocks interval 28 < SQ's 48, spillback 318 >= SQ's 300.
+    # Finding M-13: JAM_DENSITY=200 / BACKWAVE_SPEED=12 hardcoded in
+    # global.h, not in the supply contract - move to link inputs pre-F05/F07.
   - id: ST02E_INCIDENT
     path: cases/ST02e_incident_f07
     enabled: false              # requires mu(t)/F07; TD = 450*t_R^2 sweep gate

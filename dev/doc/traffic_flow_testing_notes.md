@@ -154,7 +154,7 @@ changes reveal capacity changes and capacity drop directly.
 
 | # | Finding | Action window |
 | --- | --- | --- |
-| M-1 | Node rotation `(t+i)%m` is an undocumented implicit merge rule | freeze decision before F05; ST06 gate |
+| M-1 | Node rotation `(t+i)%m` is an undocumented implicit merge rule | **RESOLVED by the DTALite paper (Zhou & Taylor 2014, Cogent Eng., sec. 3.7)**: the authoritative merge model is Daganzo (1994) priority-based allocation with lane-proportional priorities and the mid() operator — cap_out(1) = mid{d1, cap_in − d2, p1·cap_in}, cap_out(2) = mid{d2, cap_in − d1, p2·cap_in}, p_i = nlanes_i/Σnlanes; Fig. 11 point g (not f): an approach demanding less than its priority share yields the leftover to the other. Diverge needs NO special model — agents carry paths, FIFO on the incoming link governs (sec. 3.7.3; openDTA already satisfies this by construction). Origin = loading buffer respecting link-1 inflow capacity (sec. 3.7.1; openDTA loads the entrance queue directly without an inflow check — gap to note for F05). Signals: cap_out = q_sat · g/C (sec. 3.7.4 → ST10/F07). F05 implements Daganzo-mid to replace the rotation; ST06's frozen numbers (cap_in = 2400, lanes 4:1 → 1920/480) are exactly this formula. |
 | M-2 | FIFO diverge throttling absent (independent per-link caps) | F05 requirement; ST07 red gate when built |
 | M-3 | Spillback architecture: prefer **LTM/section-based** (exact, link-level, zero diffusion) over cell-based CTM | F05 design input |
 | M-4 | Jam-outflow=Q_max and two-wave-speed invariants | add to KW-tier gates at F05 |
