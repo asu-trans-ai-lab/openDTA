@@ -1,0 +1,11 @@
+link_id,from_node_id,to_node_id,time_period,volume,travel_time,waiting_time,speed,CA,CD,density,queue
+1,1,2,P1,0,1,0,60,3,0,3,0
+1,1,2,DRAIN,0,1,0,60,3,1,2,2
+1,1,2,DRAIN,2,1,0,60,3,3,0,0
+1,1,2,DRAIN,0,1,0,60,3,3,0,0
+1,1,2,DRAIN,0,1,0,60,3,3,0,0
+1,1,2,DRAIN,0,1,0,60,3,3,0,0
+1,1,2,DRAIN,0,1,0,60,3,3,0,0
+1,1,2,DRAIN,0,1,0,60,3,3,0,0
+1,1,2,DRAIN,0,1,0,60,3,3,0,0
+1,1,2,DRAIN,0,1,0,60,3,3,0,0

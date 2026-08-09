@@ -122,6 +122,14 @@ FD: w = 12 mph, k_j = 180 veh/mi/ln → **v_Q = 15 mph**. N = 420.
 Point-queue layer (A/D/Q) validates today; the SQM layer (t_F/t_Q split,
 trajectory reconstruction, dual-strip speed) lands with S5a–S5d.
 
+### ST00c_terminal_three_vehicles — agent-level TA/TD micro gate (RED)
+1-mile 60-mph link (FFTT = 1.0 min), μ = 600/h = exactly 1 veh/interval,
+three vehicles entering interval 0. Gold TT = 1.0 / 1.1 / 1.2 min, total
+delay 0.30 min, asserted **per agent from trajectories.csv** — never via the
+aggregate waiting table. Gate: `tools/check_agent_timestamps.py`. Current
+RED: only 1 of 3 vehicles appears (S0d dedup); the terminal TT stays at FFTT
+(S0c-1). Mini-spec: `dev/doc/S0c_terminal_departure_minispec.md`.
+
 ### ST01 / ST03 — profile loading & tandem (declared, disabled)
 Await S1/S2 (profile-consuming vehicleization) and S6 (tandem via the frozen
 gold G2/G2b cases).
@@ -153,7 +161,9 @@ CA/CD/Q, 100-vehicle x–t fan, link×time TT and speed heatmaps.
 | Phantom early T0 (sim 2 vs 32) | sampling of burst batches | same | **S2 + clock audit** |
 | Delay +40 veh·h | batching + bookkeeping | **S2 first**, re-judge at S5 |
 | ST02b N = 2604 vs 2602 | +2 veh | **F-2 ceil inflation** (float error × 30 periods) | **S2** (largest remainder) |
-| Speed stays FFS under 600-veh queue | physical inconsistency | **S0c: terminal-link waiting-time accounting** — `update_waiting_time()` only on the transfer branch ([simulation.cpp:304]); terminal links record zero wait | **S0c mini-spec** (registered defect; validator diagnostic FAILs it meanwhile) |
+| Speed stays FFS under 600-veh queue | physical inconsistency | **S0c-2: terminal-link waiting accounting** (`update_waiting_time()` only on the transfer branch) | **S0c mini-spec** (oracle-based diagnostic FAILs it meanwhile) |
+| Terminal TD never written back to agent | trajectory TT under-reported by the whole queueing delay | **S0c-1**: `set_dep_interval(t)` missing in the `reaches_last_link` branch | **S0c mini-spec** |
+| 1 of 3 vehicles in trajectories.csv | audit trail suppressed | **S0d**: `output_trajectories()` dedups by (dep_time, OD) — with minute batching this hides most of the fleet | **S0c mini-spec** |
 | Integer capacity +1 (fixed) | 1200/h served at 1800/h | F-3 integer branch | **done (S0b)** |
 
 Attribution rule: the +18 family is charged to **S2 loading realization
@@ -162,18 +172,36 @@ piecewise-constant contract, and the pre-S2 engine does not yet realize that
 contract at 6-sec resolution. No queue-engine changes based on these reds
 until S2 lands and the residuals are re-measured.
 
-## 5. Roadmap insertion (S5 expanded)
+## 5. Roadmap (frozen order — S0c before everything, S2 split)
 
 ```
-S2   6-sec deterministic staggering + largest remainder   → re-measure +18 family
-S0c  terminal-link waiting-time fix (own mini-spec)       → speed strip turns honest
-S3   A(t) audit        S4  ServiceDiscretizer
-S5a  CA/CD → TT(t)     (inverse-curve path)
-S5b  agent TA/TD → TT(t) (primary truth; consistency gate vs S5a ≤ 1 interval)
-S5c  TT → experienced average speed v̄(t)
-S5d  SQM (t_F, t_Q, v_Q) split + x_f(t) trajectory reconstruction  → ST04a full
-S6   tandem            L0/L1 3-corridor replay            F05 spatial/spillback
+S0/S0b DONE
+S0c-1  terminal actual departure timestamp  (set_dep_interval in terminal branch)
+S0c-2  terminal waiting-time accounting     (update_waiting_time; period-index
+                                             semantics frozen in the mini-spec)
+S0d    trajectory output emits every agent  (drop the dep_time/OD dedup)
+       → ST00c green; ST02/ST04 TT & speed panels become non-green (honest)
+S1     profile → bins
+S2a    ceil → conserved integer vehicles    (fixes ST02b N 2604 vs 2602)
+S2b    minute batching → 6-sec deterministic staggering
+       → rerun ST02/ST04: the +18 family must disappear
+S3     A(t) audit
+S4     fractional ServiceDiscretizer
+S5a    CA/CD → TT(t) by FIFO inversion D⁻¹(A(t)) − t   (general oracle)
+S5b    agent TA/TD → TT(t)  (PRIMARY truth; vs S5a ≤ 1 interval)
+S5c    TT → experienced average speed v̄(t)
+S5d    SQM (t_F, t_Q, v_Q) + x_f(t) reconstruction     → ST04a full
+S6     tandem → L0/L1 3-corridor replay → F05 spatial/spillback
 ```
+
+**Do-not list while ST00c/ST02/ST04 are red:** no capacity or λ(t) edits, no
+tolerance widening, no diagnostic-threshold inflation, no SQM reconstruction,
+no spatial queue, no μ(t). The reds are the roadmap, not noise.
+
+**Oracle clock note (constant μ only):** TT(t_e) = FFTT + Q((t_e+FFTT)⁻)/μ —
+the queue is sampled at the service point, not at entry; the validator
+implements this shift explicitly. The general oracle is the S5a FIFO
+inversion, which needs no such formula.
 
 Also planned once S1/S2 land — the **time-contract equivalence gate**: the
 same λ(t) expressed as (A) many 5-min demand periods and (B) one period + a

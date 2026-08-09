@@ -1,0 +1,2 @@
+agent_id,o_zone_id,d_zone_id,dep_time,arr_time,trip_completed,travel_time,PCE,travel_distance,node_path,geometry,time_sequence
+0,0,1,7:00:00,7:01:00,c,1,1,1,1;2,"LINESTRING (0.000000 0.000000;1.000000 0.000000)",7:00:00;7:01:00

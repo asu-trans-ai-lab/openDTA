@@ -1,0 +1,45 @@
+---
+# ST00c: terminal-link actual-departure micro gate (defect S0c).
+# 1-mile 60-mph link (FFTT = 1 min = 10 intervals), capacity 600/h = exactly
+# 1 veh per 6-s interval (integer service path). Three vehicles all depart in
+# interval 0 (volume 3 over a 1-minute period, integer-minute batching puts
+# them together - which is exactly what this gate needs).
+# Gold per-agent truth (intervals): exit-queue-ready at 10; served 1/interval:
+#   agent 1: TD = interval 10  -> TT = 1.0 min
+#   agent 2: TD = interval 11  -> TT = 1.1 min
+#   agent 3: TD = interval 12  -> TT = 1.2 min
+# Pre-S0c engine never writes the actual terminal departure back
+# (set_dep_interval missing in the reaches_last_link branch), so all three
+# report TT = 1.0 min. This case must be RED until S0c lands.
+user_equilibrium:
+  load_columns: false
+  column_gen_num: 20
+  column_opd_num: 20
+
+simulation:
+  enable: true
+  resolution: 6
+  traffic_flow_model: point_queue
+
+agent_type:
+  - type: a
+    name: auto
+    flow_type: 0
+    pce: 1
+    vot: 10
+    free_speed: 60
+    use_link_ffs: true
+
+demand_period:
+  - period: P1
+    period_id: 1
+    time_period: 0700-0701
+    demand:
+      - file_name: demand.csv
+        agent_type: auto
+  - period: DRAIN
+    period_id: 2
+    time_period: 0701-0710
+    demand:
+      - file_name: demand_zero.csv
+        agent_type: auto

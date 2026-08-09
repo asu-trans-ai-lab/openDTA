@@ -157,14 +157,18 @@ def validate(case_id, exe):
     ok = abs(delay_sim - delay_gold) <= max(TOL_AGGREGATE * delay_gold, 1.0)
     check("total delay within 1%", ok, f"sim {delay_sim:.1f} vs gold {delay_gold:.1f} veh-h")
 
-    # S0c diagnostic (registered defect: terminal-link waiting-time accounting;
-    # update_waiting_time() runs only on the transfer branch, so terminal links
-    # report free-flow speed regardless of queue). Physical consistency rule:
-    ffs = 60.0
-    bad = sum(1 for t in range(n)
-              if sim["Q"][t] > 100 and sim["speed"][t] >= 0.99 * ffs)
-    check("S0c diagnostic: no free-flow speed while queue > 100 veh",
-          bad == 0, f"{bad} minutes report FFS under heavy queue")
+    # S0c diagnostic (registered defect: terminal-link actual-departure /
+    # waiting-time accounting). Oracle-based, never vacuous: whenever the
+    # oracle says a cohort waits more than one output interval, the reported
+    # travel time must exceed FFTT. (The old "queue > 100" form was vacuously
+    # true on small cases like ST04a - Qmax 58 never crossed 100.)
+    fftt = summary["fftt_min"]
+    mu_min = summary["mu_vph"] / 60.0
+    congested = [t for t in range(n) if series["Q"][t] / mu_min > 1.0]
+    bad = sum(1 for t in congested if sim["TT"][t] <= fftt + 1e-9)
+    check("S0c diagnostic: TT > FFTT whenever oracle wait > 1 min",
+          bad == 0,
+          f"{bad} of {len(congested)} oracle-congested minutes report free-flow TT")
 
     passed = all(ok for _, ok, _ in checks)
     write_html(case_id, series, summary, sim, n, checks, passed)
@@ -284,10 +288,16 @@ def write_html(case_id, series, summary, sim, n, checks, passed):
     lam_sim = [0.0] + [(sim["CA"][t] - sim["CA"][t - 1]) * 60 for t in range(1, n)]
     out_rate = [0.0] + [(sim["CD"][t] - sim["CD"][t - 1]) * 60 for t in range(1, n)]
 
-    # oracle waiting/travel time from the queue: W(t) = Q(t)/mu, TT = fftt + W
+    # oracle waiting/travel time BY ENTRY COHORT (clock made explicit):
+    # a vehicle entering at t_e reaches the bottleneck service point at
+    # t_e + FFTT, so   TT(t_e) = FFTT + Q((t_e + FFTT)^-) / mu   - using
+    # Q(t_e)/mu would be off by the FFTT shift. Valid for constant mu only;
+    # the general oracle (S5a) is the FIFO inversion TT(t) = D^-1(A(t)) - t.
     mu_per_min = summary["mu_vph"] / 60.0
     fftt = summary["fftt_min"]
-    w_oracle = [q / mu_per_min for q in series["Q"][:n]]
+    shift = int(round(fftt))
+    q_at_service = [series["Q"][min(t + shift, n - 1)] for t in range(n)]
+    w_oracle = [q / mu_per_min for q in q_at_service]
     tt_oracle = [fftt + w for w in w_oracle]
     w_sim = [s / 60.0 for s in sim["W_sec"][:n]]     # engine reports seconds
 
