@@ -1794,6 +1794,85 @@ void NetworkHandle::output_departure_bin_demand()
     }
 }
 
+// S3: the loading contract as a permanent engine artifact. Per (period,
+// agent) cohort and per clock minute: realized cumulative departures A_sim
+// vs the contract value A_theory = n * F(t) (bound conditional CDF, or
+// uniform for unbound periods). Guards the S2a/b/c vehicleization chain as
+// a standing gate, independent of any link output.
+void NetworkHandle::output_cumulative_departure_audit()
+{
+    if (this->agents.empty())
+        return;
+
+    // cohort agent departure times (minutes) keyed by (dp_no, at_no)
+    std::map<std::pair<unsigned short, unsigned short>, std::vector<double>> cohorts;
+    for (const auto& agent : this->agents)
+        cohorts[{agent.get_demand_period_no(), agent.get_agent_type_no()}]
+            .push_back(agent.get_orig_dep_time());
+
+    auto writer = miocsv::Writer(output_dir.string() + '/' + this->m_cum_audit_filename);
+    writer.write_row_raw("period_id", "agent_type", "minute", "A_sim",
+                         "A_theory", "deviation", "cohort_size");
+
+    for (auto& [key, times] : cohorts)
+    {
+        const auto dp = this->dps[key.first];
+        const auto& at_name = this->ats[key.second]->get_name();
+        std::sort(times.begin(), times.end());
+        auto n = times.size();
+
+        // the same profile lookup setup_agents uses
+        const DepartureProfile* profile = nullptr;
+        for (const auto dpr : this->dep_profiles)
+        {
+            if (dpr->get_period_id() != dp->get_period_id())
+                continue;
+
+            if (dpr->get_agent_type().empty() || dpr->get_agent_type() == at_name)
+            {
+                profile = dpr;
+                break;
+            }
+        }
+
+        auto st = dp->get_start_time();
+        auto et = dp->get_end_time();
+        std::vector<double>::size_type served = 0;
+        for (auto m = st; m != et; ++m)
+        {
+            // A_sim: departures through the end of minute m
+            while (served < n && times[served] < m + 1)
+                ++served;
+
+            // A_theory: n * F at the end of minute m
+            double f = 0;
+            if (profile)
+            {
+                for (const auto& b : profile->get_bins())
+                {
+                    if (b.start_min + b.width_min <= m + 1)
+                        f += b.weight;
+                    else if (b.start_min < m + 1)
+                        f += b.weight * (m + 1 - b.start_min) / b.width_min;
+                }
+            }
+            else
+                f = std::min(1.0, static_cast<double>(m + 1 - st) / dp->get_duration());
+
+            char buf[32];
+            writer.append(dp->get_period_id());
+            writer.append(at_name);
+            writer.append(m);
+            writer.append(served);
+            std::snprintf(buf, sizeof(buf), "%.6f", n * f);
+            writer.append(std::string{buf});
+            std::snprintf(buf, sizeof(buf), "%.6f", served - n * f);
+            writer.append(std::string{buf});
+            writer.append(n, '\n');
+        }
+    }
+}
+
 void NetworkHandle::output_trajectories()
 {
     auto writer = miocsv::Writer(this->output_dir.string() + '/' + this->m_traj_filename);
