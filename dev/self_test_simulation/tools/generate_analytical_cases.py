@@ -88,11 +88,24 @@ def pieces_twin_peaks():
     return _discretize(rate, 150)
 
 
+def pieces_sqm_paper():
+    # ST04a: the paper-exact SQM case (see TEST_CATALOG.md #ST04a).
+    # lambda = 600 / 1500 / 900 veh/h over 10 / 8 / 8 min, mu = 1200:
+    # Qmax = 40 veh at t=18, tw_max = 2 min, T3 = 26 min exactly.
+    # SQM layer (S5d, constant-mu triangular FD w=12 mph, kj=180/mi/lane):
+    # vQ = mu/(kj - mu/w) = 15 mph; tQ_max = 2*60/45 = 2.6667 min;
+    # tF_max = 1 - 2*15/45 = 0.3333 min; TT_max = 3.0 min; v_bar_min = 20 mph;
+    # physical queue segment dQ = 0.6667 mi. Chosen so the SQM applicability
+    # condition holds (tF > 0), unlike ST02a where tw = 30 min violates it.
+    return [(10, 100), (8, 200), (8, 120)]
+
+
 CASES = {
     "ST02a_step_gold": pieces_gold_a,
     "ST02b_quadratic": pieces_quadratic,
     "ST02c_cubic": pieces_cubic,
     "ST02d_twin_peaks": pieces_twin_peaks,
+    "ST04a_sqm_paper": pieces_sqm_paper,
 }
 
 

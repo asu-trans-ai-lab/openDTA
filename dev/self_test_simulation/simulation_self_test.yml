@@ -48,21 +48,65 @@ cases:
       final_CA: 1000
 
   - id: ST02_POINT_QUEUE_GOLD
-    path: cases/ST02_point_queue_gold
-    enabled: false          # awaits S1-S5 (analytical single-link chain)
+    path: cases/ST02a_step_gold        # generated bank: see tools/ + TEST_CATALOG.md
+    enabled: partial                   # A/D/Q gates run today; TT/speed await S0c+S2
     # lambda = 600/1800/600 veh/h over 0-30/30-90/90-150 min, mu = 1200 veh/h.
-    # IMPORTANT (S5 correction): the Newell oracle compares
-    #   Q(t) = A_service(t) - D(t), where A_service(t) = A_entry(t - fftt);
-    # LinkQueue::get_virtual_arrival() is that shifted curve. Comparing
-    # against raw A_entry would clock-shift T0/T2/T3 by the FFTT.
+    # Oracle: Q(t) = A_service(t) - D(t), A_service(t) = A_entry(t - fftt)
+    # (LinkQueue::get_virtual_arrival). Raw-A_entry comparison would
+    # clock-shift the events by the FFTT.
+    #
+    # Oracle exactness (qualified): the oracle is exact for the INTENDED
+    # piecewise-constant demand-rate contract. The pre-S2 engine realizes a
+    # period's volume in integer-minute batches (setup_agents quantizes the
+    # departure offset to whole minutes), so transient CD/Q deficits of order
+    # one minute-batch (~18 veh at 1800/h) are expected until S2 implements
+    # 6-sec deterministic staggering. First suspect for those deltas is S2
+    # loading realization - NOT the queue engine.
+    #
+    # THREE EVENT CLOCKS - never collapse these into one number again:
+    events:
+      entry_rate_breakpoint:           # demand definition clock
+        onset_min: 30
+        peak_end_min: 90
+        recovery_end_min: 150
+      service_point:                   # continuous congestion onset at the exit
+        fftt_min: 1
+        congestion_onset_continuous_min: 31
+      sampled_queue:                   # what the minute-grid oracle/engine report
+        first_positive_min: 32
+        peak_min: 91
+        clearance_min: 151
     expected:
       total_demand: 2700
-      T0_min: 30
-      Tpeak_min: 90
-      T3_min: 150
       Qmax_veh: 600
       total_delay_veh_hour: 600
       max_wait_min: 30
+
+  - id: ST04a_SQM_PAPER
+    path: cases/ST04a_sqm_paper
+    enabled: partial                   # A/D/Q today; SQM layer awaits S5a-S5d
+    # Paper-exact SQM case (TT = FFTT + tw = tF + tQ; Eq. (8)-(10)):
+    # lambda = 600/1500/900 veh/h over 10/8/8 min, mu = 1200, L = 1 mi,
+    # vF = 60 mph; triangular FD w = 12 mph, kj = 180/mi/ln -> vQ = 15 mph.
+    expected:
+      total_demand: 420
+      Qmax_veh: 40
+      tw_max_min: 2.0
+      TT_max_min: 3.0
+      v_bar_min_mph: 20.0
+      sqm:
+        tQ_max_min: 2.6667             # tw * vF/(vF-vQ)
+        tF_max_min: 0.3333             # FFTT - tw * vQ/(vF-vQ)
+        dQ_max_mile: 0.6667            # vQ * tQ
+    # SQM applicability requires tF > 0; ST02a (tw = 30 min on a 1-mi link)
+    # deliberately violates it and stays a point-queue-only gold.
+
+  # Registered diagnostic (defect S0c, terminal-link waiting time):
+  # update_waiting_time() runs only on the transfer-to-next-link branch
+  # (simulation.cpp), so terminal links record zero waiting -> TT == FFTT and
+  # speed == FFS even with hundreds of vehicles queued. Validator rule:
+  #   queue > 100 veh AND reported speed == free-flow  ->  FAIL (diagnostic).
+  # Fix lands as its own gated mini-spec, never silently.
 
   - id: ST03_TANDEM
     path: cases/ST03_tandem_gold
