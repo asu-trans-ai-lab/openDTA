@@ -1,0 +1,4 @@
+node_id,name,x_coord,y_coord,node_type,ctrl_type,zone_id,geometry
+1,,0.0,0.0,,,1,POINT (0.0 0.0)
+2,,1.0,0.0,,,,POINT (1.0 0.0)
+3,,3.0,0.0,,,2,POINT (3.0 0.0)

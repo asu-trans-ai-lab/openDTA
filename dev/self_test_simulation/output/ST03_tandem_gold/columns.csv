@@ -1,0 +1,4 @@
+agent_id,o_zone_id,d_zone_id,path_id,agent_type,demand_period,volume,toll,travel_time,distance,link_sequence,node_sequence,geometry
+0,1,2,0,auto,P1A,750,0,3.16756,3,1;2,1;2;3,
+1,1,2,0,auto,P1B,300,0,3.00429,3,1;2,1;2;3,
+2,1,2,0,auto,P2,600,0,3.06863,3,1;2,1;2;3,

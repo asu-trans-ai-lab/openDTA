@@ -1,0 +1,55 @@
+---
+# ST03: tandem gate - the gold G2_two_link_tandem case expressed natively
+# for the engine. L1 (1 mi, mu = 1200/h, fftt 1 min) feeds L2 (2 mi,
+# mu = 900/h, fftt 2 min); lambda = 1500/600/600 veh/h over
+# 07:00-07:30/07:30-08:00/08:00-09:00 (gold profile P1_STEP 750+300 + P2
+# flat 600). Resolution 12 s so BOTH capacities are integer per interval
+# (c1 = 4, c2 = 3) - the S4 discretizer never draws and the gold fluid
+# numbers apply exactly.
+# Gold events (Zhou gold dataset v2, case G2): Q1 peaks 150 veh at 07:31
+# and clears 07:46; Q2 peaks 225 veh at 07:48 and clears 08:33; tandem
+# identity CD1 == CA2; conservation 1650 vehicles end-to-end.
+user_equilibrium:
+  load_columns: false
+  column_gen_num: 20
+  column_opd_num: 20
+
+simulation:
+  enable: true
+  resolution: 12
+  traffic_flow_model: point_queue
+
+agent_type:
+  - type: a
+    name: auto
+    flow_type: 0
+    pce: 1
+    vot: 10
+    free_speed: 60
+    use_link_ffs: true
+
+demand_period:
+  - period: P1A
+    period_id: 1
+    time_period: 0700-0730
+    demand:
+      - file_name: demand_750.csv
+        agent_type: auto
+  - period: P1B
+    period_id: 2
+    time_period: 0730-0800
+    demand:
+      - file_name: demand_300.csv
+        agent_type: auto
+  - period: P2
+    period_id: 3
+    time_period: 0800-0900
+    demand:
+      - file_name: demand_600.csv
+        agent_type: auto
+  - period: CLEAR
+    period_id: 4
+    time_period: 0900-1000
+    demand:
+      - file_name: demand_zero.csv
+        agent_type: auto
