@@ -80,6 +80,7 @@ def main():
            "; ".join(l.strip() for l in lines))
 
     run_python_gate("ST05_spatial_and_kw_receiving", "B", "check_two_link.py")
+    run_python_gate("S4_fractional_service", "B", "check_fractional_service.py")
 
     # ---- Layer B2: contract fixtures (parser semantics, exit-code gates)
     for gate_id, rel, want in (

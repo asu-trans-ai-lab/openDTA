@@ -1,0 +1,2 @@
+period_id,agent_type,minute,A_sim,A_theory,deviation,cohort_size
+1,auto,420,30,30.000000,0.000000,30

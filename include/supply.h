@@ -1325,6 +1325,44 @@ private:
     std::allocator<const Link*> link_alloc;
 };
 
+// S4: legacy-faithful fractional service discretizer. Converts a fractional
+// per-interval capacity c into an integer release sequence with
+// E[n_t] == c, using the classical DTALite scheme
+// (simulation.cpp AllocateLinkMemory4Simulation): per-link LCG
+// seed = (17364 * seed) % 65521 with the LOCAL seed reset to 101, and a
+// correctly oriented Bernoulli (release the extra vehicle iff r < frac).
+// Deterministic by construction: fixed seed, fixed call order, no shared
+// state - same input => identical capacity realization, every run. This is
+// numerical discretization, not physical capacity uncertainty (F03d 2c);
+// the whole-number path never draws. Authoritative reference:
+// dev/doc/F03d_determinism_rng_audit.md 2b; frozen first-20 sequence in
+// simulation_self_test.yml.
+class ServiceDiscretizer {
+public:
+    ServiceDiscretizer() = delete;
+
+    explicit ServiceDiscretizer(double cap_per_interval)
+        : whole {static_cast<size_type>(std::floor(cap_per_interval))},
+          frac {cap_per_interval - std::floor(cap_per_interval)},
+          seed {101}
+    {
+    }
+
+    size_type next()
+    {
+        if (frac < 1e-12)
+            return whole;
+
+        seed = static_cast<unsigned int>((17364ULL * seed) % 65521);
+        return whole + (static_cast<double>(seed) / 65521 < frac ? 1 : 0);
+    }
+
+private:
+    size_type whole;
+    double frac;
+    unsigned int seed;
+};
+
 // a wrapper class of link object and queues for simulation purpose
 class LinkQueue {
 public:
@@ -1334,8 +1372,15 @@ public:
     // k: simulation duration, r : simulation resolution
     LinkQueue(const Link* link_, size_type n, unsigned short k, unsigned short r)
         : link {link_}, res {r}, cum_arr (n, 0), cum_dep (n, 0),
-          waiting_time (k, 0), outflow_cap(n, get_flow_cap())
+          waiting_time (k, 0), outflow_cap(n, 0)
     {
+        // S4: per-interval service realization via the legacy discretizer,
+        // replacing the former single whole-horizon draw (defect F-3:
+        // random_device-seeded, inverted Bernoulli, horizon-constant)
+        ServiceDiscretizer sd {link->get_cap() / SECONDS_IN_HOUR * res};
+        for (auto& c : outflow_cap)
+            c = sd.next();
+
         backwave_tt = to_interval(link->get_length() / BACKWAVE_SPEED * MINUTES_IN_HOUR);
         spatial_cap = std::floor(link->get_length() * link->get_lane_num() * JAM_DENSITY);
     }
@@ -1552,23 +1597,9 @@ public:
     }
 
 private:
-    size_type get_flow_cap() const
-    {
-        double c1 = link->get_cap() / SECONDS_IN_HOUR * res;
-        size_type c2 = std::floor(c1);
-        // S0b fix (F-3 integer branch): a whole-number per-interval capacity
-        // must be served exactly - the residual draw below returned +1 with
-        // certainty when c1 == c2, inflating every integer capacity by one
-        // vehicle per interval (e.g. 1200/h became 1800/h at 6-s resolution).
-        // The fractional branch keeps its legacy-replacement in S4
-        // (ServiceDiscretizer); see dev/doc/F03d_determinism_rng_audit.md #3.
-        if (c1 == c2)
-            return c2;
-
-        size_type residual = uniform(0.0, 1.0) >= c1 - c2 ? 1 : 0;
-
-        return c2 + residual;
-    }
+    // S4: the former get_flow_cap() single-horizon draw (defect F-3) is
+    // fully replaced by the per-interval ServiceDiscretizer fill in the
+    // constructor; see that class for the legacy-faithful specification.
 
     size_type to_interval(double m) const
     {

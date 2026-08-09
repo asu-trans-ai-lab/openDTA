@@ -184,6 +184,67 @@ bool run_st00(const std::string& root)
     return checks_failed == 0;
 }
 
+// S4 Level-A unit gate: the ServiceDiscretizer against its frozen contract
+// (simulation_self_test.yml, service-discretizer section). Any change to
+// the algorithm, seed, comparison direction, or draw ordering turns this
+// red - the exact-sequence protection the S4 design demanded.
+void run_s4_discretizer_unit()
+{
+    std::cout << "\ncase S4_SERVICE_DISCRETIZER\n";
+
+    // frozen first-20 release sequence for c = 0.1, seed 101
+    constexpr int gold01[20] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1};
+    ServiceDiscretizer a {0.1};
+    bool seq_ok = true;
+    for (int i = 0; i < 20; ++i)
+    {
+        if (static_cast<int>(a.next()) != gold01[i])
+            seq_ok = false;
+    }
+
+    check(seq_ok, "c=0.1 frozen first-20 release sequence (19 zeros then 1)");
+
+    // frozen extras for c = 1.7 (floor 1 + Bernoulli(0.7)): 12 of first 20
+    ServiceDiscretizer b {1.7};
+    int extras = 0;
+    for (int i = 0; i < 20; ++i)
+        extras += static_cast<int>(b.next()) - 1;
+
+    check(extras == 12, "c=1.7 frozen first-20 extras == 12");
+
+    // reproducibility: two instances, identical 1000-draw sequences
+    ServiceDiscretizer c1 {0.3};
+    ServiceDiscretizer c2 {0.3};
+    bool same = true;
+    for (int i = 0; i < 1000; ++i)
+    {
+        if (c1.next() != c2.next())
+            same = false;
+    }
+
+    check(same, "same seed => identical 1000-draw sequence");
+
+    // integer path never draws and is exact
+    ServiceDiscretizer d {2.0};
+    bool exact = true;
+    for (int i = 0; i < 1000; ++i)
+    {
+        if (d.next() != 2)
+            exact = false;
+    }
+
+    check(exact, "c=2.0 integer path releases exactly 2 every interval");
+
+    // long-run mean within 1% (LCG quality bound at 10k draws)
+    ServiceDiscretizer e {0.1};
+    long total = 0;
+    for (int i = 0; i < 10000; ++i)
+        total += static_cast<long>(e.next());
+
+    check(std::fabs(total / 10000.0 - 0.1) <= 0.01,
+          "c=0.1 mean over 10000 draws within 1% (" + std::to_string(total) + "/10000)");
+}
+
 } // namespace
 
 int main(int argc, char* argv[])
@@ -195,6 +256,7 @@ try
               << "root: " << root << "\n\n";
 
     run_st00(root);
+    run_s4_discretizer_unit();
     // ST01 (profile loading), ST02 (analytical point queue), ST03 (tandem)
     // are declared in simulation_self_test.yml with enabled: false and are
     // activated as features S1-S6 land.
