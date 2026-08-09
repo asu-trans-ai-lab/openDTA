@@ -65,6 +65,7 @@ public:
     void read_settings();
 
     void output_columns();
+    void output_departure_bin_demand();
     void output_trajectories();
 
     void output_link_performance_dta();
@@ -311,6 +312,7 @@ private:
     std::string m_node_filename = "node.csv";
     std::string m_link_filename = "link.csv";
     std::string m_dep_profile_filename = "departure_profile.csv";
+    std::string m_dep_bin_filename = "departure_bin_demand.csv";
     std::string m_cols_filename = "columns.csv";
     std::string m_link_perf_ue_filename = "link_performance_ue.csv";
     std::string m_link_perf_dta_filename = "link_performance_dta.csv";

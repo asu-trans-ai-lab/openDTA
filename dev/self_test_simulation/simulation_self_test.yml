@@ -40,12 +40,15 @@ cases:
         freeflow_speed_mph: 60.0
 
   - id: ST01_PROFILE_LOADING
-    path: cases/ST01_profile_loading
-    enabled: false          # awaits S1/S2 (agents do not consume profiles yet)
+    path: cases/ST01_profile_bins
+    enabled: partial        # S1 live (bin demand via tools/check_bin_demand.py);
+                            # final_CA awaits S2 (agents still ignore profiles)
     expected:
       total_demand: 1000
-      bin_counts: [400, 600]
-      final_CA: 1000
+      bin_demands: [400, 600]   # departure_bin_demand.csv, exact to 1e-9
+      final_CA: 1000            # S2 gate
+    # Case B: dev/test/f03/transims - 8 bindings, window-clipped bin counts
+    # (AM 16 / MD 20 / PM 16 / NT 20), each summing exactly to 1000.
 
   - id: ST02_POINT_QUEUE_GOLD
     path: cases/ST02a_step_gold        # generated bank: see tools/ + TEST_CATALOG.md
