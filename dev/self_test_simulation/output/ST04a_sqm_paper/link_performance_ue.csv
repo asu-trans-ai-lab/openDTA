@@ -1,5 +1,0 @@
-link_id,from_node_id,to_node_id,time_period,volume,travel_time,speed,VOC,geometry
-1,1,2,P01,100,1.00001,59.9996,0.0833333,"LINESTRING (0.0 0.0, 1.0 0.0)"
-1,1,2,P02,200,1.00012,59.9931,0.166667,"LINESTRING (0.0 0.0, 1.0 0.0)"
-1,1,2,P03,120,1.00002,59.9991,0.1,"LINESTRING (0.0 0.0, 1.0 0.0)"
-1,1,2,P04,0,1,60,0,"LINESTRING (0.0 0.0, 1.0 0.0)"
