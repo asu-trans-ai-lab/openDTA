@@ -1,0 +1,9 @@
+link_id,name,from_node_id,to_node_id,facility_type,link_type,dir_flag,length,lanes,free_speed,capacity,geometry
+1,seg1,1,2,Freeway,1,1,0.25,2,60,1800,"LINESTRING (0.00 0.0, 0.25 0.0)"
+2,seg2,2,3,Freeway,1,1,0.25,2,60,1800,"LINESTRING (0.25 0.0, 0.50 0.0)"
+3,seg3,3,4,Freeway,1,1,0.25,2,60,1800,"LINESTRING (0.50 0.0, 0.75 0.0)"
+4,seg4,4,5,Freeway,1,1,0.25,2,60,1800,"LINESTRING (0.75 0.0, 1.00 0.0)"
+5,seg5,5,6,Freeway,1,1,0.25,2,60,1800,"LINESTRING (1.00 0.0, 1.25 0.0)"
+6,seg6,6,7,Freeway,1,1,0.25,2,60,1800,"LINESTRING (1.25 0.0, 1.50 0.0)"
+7,seg7,7,8,Freeway,1,1,0.25,2,60,1800,"LINESTRING (1.50 0.0, 1.75 0.0)"
+8,seg8,8,9,Freeway,1,1,0.25,1,60,1800,"LINESTRING (1.75 0.0, 2.00 0.0)"

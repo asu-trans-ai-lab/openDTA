@@ -1,0 +1,4 @@
+link_id,name,from_node_id,to_node_id,facility_type,link_type,dir_flag,length,lanes,free_speed,capacity,geometry
+1,shared,1,2,Freeway,1,1,1,2,60,1800,"LINESTRING (0.0 0.0, 1.0 0.0)"
+2,main_exit,2,3,Freeway,1,1,1,2,60,1800,"LINESTRING (1.0 0.0, 2.0 0.5)"
+3,off_ramp,2,4,Ramp,1,1,1,1,60,1200,"LINESTRING (1.0 0.0, 2.0 -0.5)"

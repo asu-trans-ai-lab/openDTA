@@ -1,0 +1,6 @@
+link_id,time_start,time_end,discharge_rate
+# 60-s cycle, g/C = 0.5: repeat red (0) / green (1800) blocks - the
+# F07 signal representation (Treiber Eq. 8.31: DQ = Q_max in red)
+1,07:00:00,07:00:30,0
+1,07:00:30,07:01:00,1800
+# ... generated for the full hour by the F07 tooling

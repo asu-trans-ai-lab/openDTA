@@ -1,0 +1,37 @@
+---
+# ST08: lane-drop chain for queue-front (shockwave) tracking. Eight
+# 0.25-mi segments; the last drops to 1 lane (C 3600 -> 1800). Demand
+# 3000 veh/h for 30 min then 1200. Kinematic-wave model so upstream
+# storage/backwave participates.
+user_equilibrium:
+  load_columns: false
+  column_gen_num: 20
+  column_opd_num: 20
+
+simulation:
+  enable: true
+  resolution: 6
+  traffic_flow_model: kinematic_wave
+
+agent_type:
+  - type: a
+    name: auto
+    flow_type: 0
+    pce: 1
+    vot: 10
+    free_speed: 60
+    use_link_ffs: true
+
+demand_period:
+  - period: PEAK
+    period_id: 1
+    time_period: 0700-0730
+    demand:
+      - file_name: demand.csv
+        agent_type: auto
+  - period: OFF
+    period_id: 2
+    time_period: 0730-0900
+    demand:
+      - file_name: demand_low.csv
+        agent_type: auto

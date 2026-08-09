@@ -101,7 +101,35 @@ cases:
     # SQM applicability requires tF > 0; ST02a (tw = 30 min on a 1-mi link)
     # deliberately violates it and stays a point-queue-only gold.
 
-  # Registered diagnostic (defect S0c, terminal-link waiting time):
+    - id: ST02F_KNOOP_STEP
+    path: cases/ST02f_knoop_step
+    enabled: partial            # A/D/Q gates run; +18 family red until S2b
+    # Knoop 3rd ed. sec. 2.6 x0.9 (mu = 3600): oracle Qmax = 450 veh,
+    # TD = 168.75 veh-h - equals the scaled book values exactly.
+
+  - id: ST02G_TRAPEZOID
+    path: cases/ST02g_trapezoid
+    enabled: partial
+    # May-Keller trapezoid (mu = 5400): Qmax = 1600, TD = 2354.2 veh-h,
+    # queue persists ~81 min past the demand peak.
+
+  - id: ST06_MERGE_DAGANZO
+    path: cases/ST06_merge_daganzo
+    enabled: characterization   # F05 gate: q = (1920, 480) at R = 2400, p = 4:1
+  - id: ST07_DIVERGE_FIFO
+    path: cases/ST07_diverge_fifo
+    enabled: characterization   # F05 gate: q = (600, 1200); FIFO throttling
+  - id: ST08_LANEDROP_CHAIN
+    path: cases/ST08_lanedrop_chain
+    enabled: characterization   # invariants live now: bottleneck == 1800/h; F05: front speeds
+  - id: ST02E_INCIDENT
+    path: cases/ST02e_incident_f07
+    enabled: false              # requires mu(t)/F07; TD = 450*t_R^2 sweep gate
+  - id: ST10_SIGNAL_WEBSTER
+    path: cases/ST10_signal_webster_f07
+    enabled: false              # requires mu(t)/F07; d1 = 13.5 s/veh; delay ~ red^2
+
+# Registered diagnostic (defect S0c, terminal-link waiting time):
   # update_waiting_time() runs only on the transfer-to-next-link branch
   # (simulation.cpp), so terminal links record zero waiting -> TT == FFTT and
   # speed == FFS even with hundreds of vehicles queued. Validator rule:

@@ -164,6 +164,16 @@ changes reveal capacity changes and capacity drop directly.
 | M-8 | Entropy negative test + maximum principle | KW tier (F05) negative cases |
 | M-9 | Outside-network queue counter + conservation | with entry constraints (F05) |
 | M-10 | Signal/red-square-law delay family | F07 μ(t) acceptance |
+| M-11 | `link.csv capacity` is **per lane** (`get_cap() = cap × lane_num`, supply.h:204) — GMNS convention vs consensus Q-1 (total per direction); caught by ST06 (2-lane link served at 2× declared total) | unit conversion in the F05/F07 supply adapter; every multi-lane case must declare per-lane values |
+| M-12 | Sub-minute FFTT truncates to TT=0/speed=inf in reporting (`to_minute()` integer cast in `get_travel_time()`) — caught by ST08's 0.25-mi segments | micro-fix + short-link gate before chain-based front tracking |
+
+**Build status (2026-08-09):** ST02f/ST02g generated and red-gated (oracle
+matches the ×0.9-scaled Knoop numbers exactly: Qmax 450, TD 168.75 veh·h);
+ST06/ST07/ST08 case dirs shipped with tiered READMEs and first
+characterization runs (downstream merge discharge exactly 2400/h; ST08
+bottleneck exactly 1800/h with KW spillback already reaching segment 7;
+ST07 ramp pinned at 1200 with partial FIFO blocking of the main movement);
+ST02e/ST10 ship `capacity_profile.csv` as the F07 contract preview.
 
 **Sequencing note:** nothing here jumps the frozen ladder. ST02e/f/g run on
 the current point-queue engine as soon as S2a/S2b land (they are

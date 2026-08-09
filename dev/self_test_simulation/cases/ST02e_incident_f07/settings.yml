@@ -1,0 +1,29 @@
+---
+# ST02e: May sec. 12.2.3 incident case - REQUIRES mu(t) (feature F07).
+# enabled: false until then; capacity_profile.csv is the contract preview.
+user_equilibrium:
+  load_columns: false
+  column_gen_num: 20
+  column_opd_num: 20
+
+simulation:
+  enable: true
+  resolution: 6
+  traffic_flow_model: point_queue
+
+agent_type:
+  - type: a
+    name: auto
+    flow_type: 0
+    pce: 1
+    vot: 10
+    free_speed: 60
+    use_link_ffs: true
+
+demand_period:
+  - period: PEAK
+    period_id: 1
+    time_period: 0700-0900
+    demand:
+      - file_name: demand.csv
+        agent_type: auto

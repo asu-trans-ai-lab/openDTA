@@ -1,0 +1,2 @@
+link_id,name,from_node_id,to_node_id,facility_type,link_type,dir_flag,length,lanes,free_speed,capacity,geometry
+1,approach,1,2,arterial,2,1,0.5,1,30,1800,"LINESTRING (0.0 0.0, 0.5 0.0)"
