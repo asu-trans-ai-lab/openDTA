@@ -85,6 +85,7 @@ def main():
     run_python_gate("S6_tandem_gold_G2", "B", "check_tandem.py")
     run_python_gate("F05_node_models", "B", "check_node_models.py")
     run_python_gate("V1b_readiness_run_modes", "B", "check_readiness.py")
+    run_python_gate("V1c_supply_provider_mu_t", "B", "check_supply_provider.py")
 
     # ---- Layer B2: contract fixtures (parser semantics, exit-code gates)
     for gate_id, rel, want in (

@@ -1,0 +1,2 @@
+link_id,window_start,window_end,mu_value,mu_unit,per_lane_or_all_lanes,lanes_open,source,quality_flag
+1,0700,0900,30,veh/min,all_lanes,1,explicit,good

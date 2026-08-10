@@ -266,10 +266,34 @@ void NetworkHandle::setup_agents()
 
 void NetworkHandle::setup_link_queues()
 {
+    // V1-c: project the absolute-clock mu(t) windows onto the simulation
+    // clock (anchored at the first demand period). Window edges land on
+    // interval boundaries when aligned to the resolution; a misaligned
+    // edge takes effect at the first interval starting inside the window.
+    std::map<size_type, std::vector<MuWindow>> mu_windows;
+    const auto start_sec = static_cast<unsigned>(
+        this->dps.front()->get_start_time()) * SECONDS_IN_MINUTE;
+    for (const auto& [link_no, wins] : this->link_supply)
+    {
+        auto& v = mu_windows[link_no];
+        for (const auto& w : wins)
+        {
+            if (w.end_sec <= start_sec)
+                continue;
+
+            auto b = w.beg_sec > start_sec
+                   ? (w.beg_sec - start_sec + this->simu_res - 1) / this->simu_res : 0;
+            auto e = (w.end_sec - start_sec + this->simu_res - 1) / this->simu_res;
+            v.push_back({b, e, w.mu_vph / SECONDS_IN_HOUR * this->simu_res});
+        }
+    }
+
     for (const auto link : this->net.get_links())
     {
+        auto it = mu_windows.find(link->get_no());
         link_queues.emplace_back(link, this->get_simulation_intervals(),
-                                 this->simu_dur, this->simu_res);
+                                 this->simu_dur, this->simu_res,
+                                 it != mu_windows.end() ? &it->second : nullptr);
     }
 
     this->merge_credits.assign(link_queues.size(), 0);
