@@ -1,4 +1,11 @@
-# ST06 -- Daganzo merge gate (prepared for F05)
+# ST06 -- Daganzo merge gate (ACTIVE since F05-a; tools/check_node_models.py)
+
+**F05-a result (frozen):** under the pre-F05 rotation the plateau measured
+1680/720 -- the 7:3 service-capacity ratio, priority-blind, and q_B stayed 720
+when d_B rose to 2000 (invariance violated). With Daganzo-mid allocation the
+plateau is exactly **1920 / 480** at downstream inflow 2400, and d_B
+1500 -> 2000 leaves q_B at 480. Gate tolerance +-2%.
+
 
 Topology: A(4 lanes, C=4200) and B(1 lane, C=1800) merge into a 2-lane
 downstream link with **R = 2400 veh/h**. Demands d_A = 3500, d_B = 1500.

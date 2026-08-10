@@ -1,4 +1,11 @@
-# ST07 -- FIFO diverge throttling gate (prepared for F05)
+# ST07 -- FIFO diverge throttling gate (ACTIVE since F05-b; tools/check_node_models.py)
+
+**F05-b measurement (frozen):** spatial queue, plateau minutes 20-50: main
+600, ramp 1200, shared discharge 1800 -- the Knoop FIFO values EXACTLY (the
+off-ramp storage of 200 veh fills ~minute 10, then the shared exit queue
+FIFO-blocks behind ramp-bound heads; single-incoming fast path, no merge
+allocation involved). Gate bands +-5%.
+
 
 Topology: shared 2-lane approach (C = 3600) splits at node 2 into main exit
 (C = 3600) and a 1-lane off-ramp (C = 1200). Demand 3600 veh/h on the shared
