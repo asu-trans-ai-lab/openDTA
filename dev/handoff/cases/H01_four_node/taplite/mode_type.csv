@@ -1,0 +1,2 @@
+mode_type,vot,pce,occ,operating_cost,demand_file,dedicated_shortest_path
+auto,10,1,1,0,demand.csv,1

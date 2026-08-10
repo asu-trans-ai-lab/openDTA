@@ -1,0 +1,37 @@
+---
+# H01: V1-a DTAC handoff smoke case. Columns come from TAPLite
+# route_columns.bin via dev/handoff/dtac2opendta.py; paths are FROZEN
+# (load_columns + zero column generation/optimization), the DNL loads
+# 7000 vehicles over P1 and drains through the CLEAR hour.
+user_equilibrium:
+  load_columns: true
+  column_gen_num: 0
+  column_opd_num: 0
+
+simulation:
+  enable: true
+  resolution: 6
+  traffic_flow_model: point_queue
+
+agent_type:
+  - type: a
+    name: auto
+    flow_type: 0
+    pce: 1
+    vot: 10
+    free_speed: 60
+    use_link_ffs: true
+
+demand_period:
+  - period: P1
+    period_id: 1
+    time_period: 0700-0800
+    demand:
+      - file_name: demand.csv
+        agent_type: auto
+  - period: CLEAR
+    period_id: 2
+    time_period: 0800-0900
+    demand:
+      - file_name: demand_zero.csv
+        agent_type: auto
