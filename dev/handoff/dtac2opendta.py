@@ -132,6 +132,26 @@ def read_demand(taplite_dir, fname):
     return q
 
 
+def read_zone_order(taplite_dir):
+    """Zone sequence -> external zone id. TAPLite assigns the dense zone
+    sequence in node.csv order of first appearance of a nonzero zone_id;
+    DTAC origin blocks are written in that sequence while destinations
+    carry external ids. Validated empirically on dense (H01) and sparse
+    (LDN034) id universes — a wrong order is caught by the OD-not-in-demand
+    check and the PT-1 gate."""
+    order = []
+    seen = set()
+    with open(os.path.join(taplite_dir, "node.csv"), newline="",
+              encoding="utf-8-sig") as f:
+        for row in csv.DictReader(f):
+            z = (row.get("zone_id") or "").strip()
+            if z and z != "0" and z not in seen:
+                seen.add(z)
+                order.append(int(z))
+
+    return order
+
+
 def read_link_lengths(taplite_dir):
     """{external_link_id: length} (unit passthrough) for distance."""
     lengths = {}
@@ -165,6 +185,10 @@ def main():
     version, n_modes, n_zones, fingerprint, blocks = read_dtac(bin_path)
     modes = read_modes(args.taplite_dir)
     lengths = read_link_lengths(args.taplite_dir)
+    zone_order = read_zone_order(args.taplite_dir)
+    if len(zone_order) != n_zones:
+        print(f"WARNING: node.csv declares {len(zone_order)} zones, DTAC has "
+              f"{n_zones}; origin mapping may be wrong")
 
     demands = {m: read_demand(args.taplite_dir, f) for m, (_, f) in modes.items()}
 
@@ -181,9 +205,7 @@ def main():
         mode_name = args.agent_type if collapsed else modes[m][0]
         q_mode = demands.get(m, {})
         for dest_ext, paths in ods:
-            # origin seq == external id for dense external zone ids (all
-            # kernel data_sets); assert against the demand table
-            o_ext = orig
+            o_ext = zone_order[orig - 1] if orig <= len(zone_order) else orig
             q = q_mode.get((o_ext, dest_ext))
             if q is None:
                 report_ods.append({"mode": m, "o": o_ext, "d": dest_ext,
