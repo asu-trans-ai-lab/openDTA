@@ -1187,9 +1187,36 @@ void NetworkHandle::read_links()
             // do nothing
         }
 
+        // F05-pre (M-13): optional per-link FD parameters; absent or
+        // non-positive values fall back to the former global defaults
+        double jam_density = JAM_DENSITY;
+        try
+        {
+            auto v = std::stod(line["jam_density"]);
+            if (v > 0)
+                jam_density = v;
+        }
+        catch(const std::exception& e)
+        {
+            // do nothing
+        }
+
+        double backwave_speed = BACKWAVE_SPEED;
+        try
+        {
+            auto v = std::stod(line["backwave_speed"]);
+            if (v > 0)
+                backwave_speed = v / this->spd_unit_conversion_factor;
+        }
+        catch(const std::exception& e)
+        {
+            // do nothing
+        }
+
         auto link = new Link {
             link_id, link_no, head_node_no, tail_node_no,
-            lane_num, cap, ffs, len, toll, modes, geo
+            lane_num, cap, ffs, len, toll, modes, geo,
+            jam_density, backwave_speed
         };
 
         uint8_t dp_no = 0;

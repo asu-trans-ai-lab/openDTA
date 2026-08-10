@@ -163,9 +163,11 @@ public:
 
     Link(std::string& id_, size_type no_, size_type head_node_no_, size_type tail_node_no_,
          uint8_t lane_num_, double cap_, double ffs_, double len_, double toll_,
-         std::string& modes_, std::string& geo_)
+         std::string& modes_, std::string& geo_,
+         double jam_density_ = JAM_DENSITY, double backwave_speed_ = BACKWAVE_SPEED)
          : id {std::move(id_)}, no {no_}, head_node_no {head_node_no_}, tail_node_no {tail_node_no_},
            lane_num {lane_num_}, cap {cap_}, ffs {ffs_}, len {len_}, toll {toll_},
+           jam_density {jam_density_}, backwave_speed {backwave_speed_},
            allowed_modes {std::move(modes_)}, geo {std::move(geo_)}
     {
     }
@@ -240,6 +242,18 @@ public:
     uint8_t get_lane_num() const
     {
         return lane_num;
+    }
+
+    // F05-pre (M-13): per-link fundamental-diagram parameters. jam_density is
+    // veh/mile/lane (scaled by lane_num where used); backwave_speed is mph.
+    double get_jam_density() const
+    {
+        return jam_density;
+    }
+
+    double get_backwave_speed() const
+    {
+        return backwave_speed;
     }
 
     double get_length() const
@@ -317,6 +331,9 @@ private:
     double cap = 1999;
     double ffs = 60;
     double len = 0;
+
+    double jam_density = JAM_DENSITY;
+    double backwave_speed = BACKWAVE_SPEED;
 
     double choice_cost = 0;
     double toll = 0;
@@ -1381,8 +1398,10 @@ public:
         for (auto& c : outflow_cap)
             c = sd.next();
 
-        backwave_tt = to_interval(link->get_length() / BACKWAVE_SPEED * MINUTES_IN_HOUR);
-        spatial_cap = std::floor(link->get_length() * link->get_lane_num() * JAM_DENSITY);
+        // F05-pre (M-13): FD parameters come from the link (per-link optional
+        // columns in link.csv), defaulting to the former global constants
+        backwave_tt = to_interval(link->get_length() / link->get_backwave_speed() * MINUTES_IN_HOUR);
+        spatial_cap = std::floor(link->get_length() * link->get_lane_num() * link->get_jam_density());
     }
 
     LinkQueue(const LinkQueue&) = delete;
@@ -1486,6 +1505,12 @@ public:
         return exit_queue.front();
     }
 
+    // F05-a: read-only iteration for the merge-allocation ready-count scan
+    const std::list<size_type>& get_exit_queue() const
+    {
+        return exit_queue;
+    }
+
     const Link* get_link() const
     {
         return link;
@@ -1507,7 +1532,7 @@ public:
         return link->get_period_travel_time(k);
     }
 
-    size_type get_outflow_cap(unsigned short i) const
+    size_type get_outflow_cap(size_type i) const
     {
         return outflow_cap[i];
     }

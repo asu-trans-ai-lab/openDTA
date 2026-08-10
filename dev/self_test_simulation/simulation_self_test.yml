@@ -121,13 +121,16 @@ cases:
 
   - id: ST06_MERGE_DAGANZO
     path: cases/ST06_merge_daganzo
-    enabled: characterization   # F05 gate: q = (1920, 480) at R = 2400, p = 4:1
+    enabled: true               # GREEN (F05-a): tools/check_node_models.py; q = (1920, 480)
+    # exactly at R = 2400, p = 4:1, plus the d_B 1500->2000 invariance pair.
   - id: ST07_DIVERGE_FIFO
     path: cases/ST07_diverge_fifo
-    enabled: characterization   # F05 gate: q = (600, 1200); FIFO throttling
+    enabled: true               # GREEN (F05-b): q = (600, 1200) measured exactly; shared
+    # link throttled to 1800/h by FIFO blocking (single-incoming fast path).
   - id: ST08_LANEDROP_CHAIN
     path: cases/ST08_lanedrop_chain
-    enabled: characterization   # invariants live now: bottleneck == 1800/h; F05: front speeds
+    enabled: true               # GREEN (F05-b): bottleneck == 30/min exact while queued;
+    # CD_i == CA_{i+1} every row; onsets seg8@3 -> seg1@16 march upstream.
   - id: ST05A_SPATIAL_SPILLBACK
     path: cases/ST05a_spatial_spillback
     enabled: true               # GREEN: tools/check_two_link.py (14/14 with ST05b)

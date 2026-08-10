@@ -1,4 +1,20 @@
-# ST08 -- lane-drop chain: queue-front trajectory gate (prepared for F05)
+# ST08 -- lane-drop chain: queue-front trajectory gate (ACTIVE since F05-b)
+
+**F05-b fixture correction:** the demand.csv volume column is the PERIOD
+TOTAL, not an hourly rate. The original files encoded 3000 veh over 30 min
+(= 6000/h, oversaturating segment 1 itself at the origin) and 1200 over
+90 min (= 800/h). Corrected to the rates this README freezes: demand.csv
+volume = 1500 (3000/h x 0.5 h), demand_low.csv = 1800 (1200/h x 1.5 h).
+
+**F05-b measurement (frozen, tools/check_node_models.py):** bottleneck
+discharge == 30 veh/min EXACTLY on all 89 queued minutes; chain conservation
+CD_i == CA_{i+1} holds with 0 deviation on every row; queue onsets (first
+minute with >= 5 veh -- the origin link shows a 1-2 veh loading transient at
+minute 1 that is not spillback) march strictly upstream:
+seg8@3, seg7@4, seg6@5, seg5@7, seg4@10, seg3@12, seg2@14, seg1@16
+(~2 min per 0.25-mi segment; the full front-speed numeric oracle lands with
+the per-link FD contract follow-up, now unlocked by F05-pre).
+
 
 Eight 0.25-mi segments; segment 8 drops 2 lanes -> 1 (C: 3600 -> 1800).
 Demand 3000 veh/h for 30 min, then 1200 (< 1800, queue must clear).
