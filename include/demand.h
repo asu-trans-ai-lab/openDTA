@@ -42,6 +42,32 @@ public:
         return dep_intvls.front() > 0;
     }
 
+    /**
+     * @brief V1-d: the interval at which this vehicle departed its final link.
+     *
+     * Two ways this is NOT a completion, both of which the caller must
+     * range-check against the simulation horizon:
+     * - size_type::max(), the initialize_intervals() sentinel, when the
+     *   vehicle never reached the final link at all;
+     * - a value past the last simulated interval, because
+     *   increment_dep_interval() schedules arrival + waiting and that sum can
+     *   land beyond the horizon. The link N-curves correctly never discharge
+     *   such a vehicle: it is still in the network when the clock stops.
+     *
+     * DEFECT NOTE: completes_trip() above tests `front() > 0`, and the
+     * sentinel max() is > 0 - so it reports every stranded vehicle as
+     * arrived. That is exactly the PT-6 leak the MVP spec calls out
+     * ("REMAINING currently unreported"). The broken predicate is left
+     * untouched so trajectories.csv stays byte-identical; V1-d's accounting
+     * uses this accessor instead. Repairing completes_trip() moves the
+     * trip_completed column and its frozen baselines, so it is its own
+     * change - see dev/doc/V1d_outputs_minispec.md.
+     */
+    size_type get_final_dep_interval() const
+    {
+        return dep_intvls.front();
+    }
+
     auto get_agent_type_no() const
     {
         return at_no;

@@ -1418,6 +1418,10 @@ public:
         // S4: per-interval service realization via the legacy discretizer,
         // replacing the former single whole-horizon draw (defect F-3:
         // random_device-seeded, inverted Bernoulli, horizon-constant)
+        cap_rate = link->get_cap() / SECONDS_IN_HOUR * res;
+        if (mu_windows)
+            mu_spec = *mu_windows;
+
         ServiceDiscretizer sd {link->get_cap() / SECONDS_IN_HOUR * res};
         if (mu_windows == nullptr)
         {
@@ -1578,6 +1582,25 @@ public:
         return outflow_cap[i];
     }
 
+    /**
+     * @brief V1-d: the SPECIFIED service rate at interval i, veh per interval.
+     *
+     * This is the mu the engine was given - the explicit V1-c window if one
+     * covers i, else the capacity-derived constant. Reporting must NOT read
+     * get_outflow_cap() instead: the simulation consumes that array via
+     * deduct_outflow_cap(), so after a run it holds RESIDUAL capacity, which
+     * reads as near-zero exactly where a link was busiest.
+     */
+    double get_mu_rate(size_type i) const
+    {
+        auto it = std::upper_bound(mu_spec.cbegin(), mu_spec.cend(), i,
+                                   [](size_type v, const MuWindow& w) { return v < w.end; });
+        if (it != mu_spec.cend() && it->beg <= i)
+            return it->rate;
+
+        return cap_rate;
+    }
+
     size_type get_spatial_capacity() const
     {
         return spatial_cap;
@@ -1690,6 +1713,11 @@ private:
     size_type backwave_tt;
     size_type spatial_cap;
     unsigned short res;
+
+    // V1-d: the specified mu(t) kept for reporting - O(windows), not
+    // O(intervals); empty means the capacity constant applies throughout
+    std::vector<MuWindow> mu_spec;
+    double cap_rate;
 
     std::list<size_type> entr_queue;
     std::list<size_type> exit_queue;

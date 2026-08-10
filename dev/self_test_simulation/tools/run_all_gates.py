@@ -14,6 +14,7 @@ Exit 0 = every gate PASS, 1 = any FAIL.
 """
 import csv
 import hashlib
+import json
 import os
 import subprocess
 import sys
@@ -86,6 +87,7 @@ def main():
     run_python_gate("F05_node_models", "B", "check_node_models.py")
     run_python_gate("V1b_readiness_run_modes", "B", "check_readiness.py")
     run_python_gate("V1c_supply_provider_mu_t", "B", "check_supply_provider.py")
+    run_python_gate("V1d_required_outputs", "B", "check_outputs.py")
 
     # ---- Layer B2: contract fixtures (parser semantics, exit-code gates)
     for gate_id, rel, want in (
@@ -166,7 +168,23 @@ def main():
                 f.write(f"| {gid} | {layer} | {'PASS' if ok else 'FAIL'} | "
                         f"{detail.replace('|', '/')} |\n")
 
+        # V1-d: the same record as JSON, so a run's gate outcomes are machine
+        # readable next to run_summary.json rather than only greppable prose
+        jpath = os.path.join(rec_dir, f"gate_report_{sha}.json")
+        with open(jpath, "w", encoding="utf-8") as f:
+            json.dump({
+                "commit": sha,
+                "executable_sha256_16": sha16(EXE),
+                "verdict": verdict,
+                "passed": n_pass,
+                "total": len(results),
+                "gates": [{"gate": gid, "layer": layer,
+                           "status": "PASS" if ok else "FAIL", "detail": detail}
+                          for gid, layer, ok, detail in results],
+            }, f, indent=1)
+
         print(f"record written: {os.path.relpath(path, REPO)}")
+        print(f"gate report written: {os.path.relpath(jpath, REPO)}")
 
     return 0 if verdict == "PASS" else 1
 

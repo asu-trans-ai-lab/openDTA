@@ -88,6 +88,10 @@ try
 
             // S3: standing loading-contract audit (A_sim vs n*F(t))
             nh.output_cumulative_departure_audit();
+
+            // V1-d: run_summary.json (incl. PT-6 N-accounting), the mu +
+            // spillback time series, congestion episodes, conservation
+            nh.output_run_reports();
         }
 
         mini_timer.stop();
