@@ -19,6 +19,7 @@
 #include <experimental/filesystem>
 #endif
 
+#include <fstream>
 #include <iostream>
 #include <iomanip>
 
@@ -99,6 +100,161 @@ void NetworkHandle::update_simulation_settings(unsigned short res, const std::st
     auto et = this->dps.back()->get_end_time();
 
     this->simu_dur = et - st;
+}
+
+// V1-b: the nine READY statuses (OPENDTA_V1_MVP_SPEC.md section 1). Every
+// run prints all nine before any computation; any BLOCKED aborts AFTER the
+// full report so the user sees where they stand without reading configs.
+void NetworkHandle::report_readiness()
+{
+    struct Status {
+        const char* name;
+        std::string level;
+        std::string note;
+    };
+
+    const bool validation = this->run_mode == RunMode::validation;
+    std::vector<Status> ss;
+    std::vector<std::string> blocked;
+    bool def_mu = false;
+    bool def_profile = false;
+
+    auto add = [&](const char* name, std::string level, std::string note) {
+        if (level.rfind("BLOCKED", 0) == 0)
+            blocked.push_back(level);
+
+        ss.push_back({name, std::move(level), std::move(note)});
+    };
+
+    auto n_nodes = this->net.get_nodes().size();
+    auto n_links = this->net.get_links().size();
+    if (n_nodes && n_links)
+        add("NETWORK_READY", "PASS",
+            std::to_string(n_nodes) + " nodes, " + std::to_string(n_links) + " links");
+    else
+        add("NETWORK_READY", "BLOCKED-NETWORK_EMPTY", "no nodes or links loaded");
+
+    // mu(t) is THE explicit primary supply input (spec section 2); until
+    // SupplyProvider/link_supply.csv lands (V1-c), every run derives a
+    // constant mu from link capacity - a disclosed default in smoke mode
+    // and a blocker in validation mode
+    if (validation)
+        add("SUPPLY_MU_READY", "BLOCKED-MU_T_NOT_VALIDATED",
+            "no SLC/explicit mu(t) source; SupplyProvider lands in V1-c");
+    else
+    {
+        def_mu = true;
+        add("SUPPLY_MU_READY", "PASS_WITH_DEFAULT",
+            "constant mu from link capacity (period_capacity level)");
+    }
+
+    size_type n_cols = 0;
+    double od_vol = 0;
+    for (auto& cv : this->cp.get_column_vecs())
+    {
+        n_cols += cv.get_column_num();
+        od_vol += cv.get_volume();
+    }
+
+    if (this->m_uses_existing_cols)
+    {
+        if (n_cols)
+            add("PATH_COLUMN_READY", "PASS",
+                std::to_string(n_cols) + " frozen columns (load_columns)");
+        else
+            add("PATH_COLUMN_READY", "BLOCKED-PATH_COLUMNS_EMPTY",
+                "load_columns produced no columns");
+    }
+    else if (validation)
+        add("PATH_COLUMN_READY", "BLOCKED-PATH_NOT_FROZEN",
+            "columns would be generated in-run (find_ue); validation requires a frozen path set");
+    else
+        add("PATH_COLUMN_READY", "PASS_WITH_DEFAULT",
+            "columns generated in-run by find_ue (not frozen)");
+
+    if (od_vol > 0)
+        add("PATH_FLOW_READY", "PASS",
+            "total OD volume " + std::to_string(od_vol));
+    else
+        add("PATH_FLOW_READY", "BLOCKED-NO_DEMAND", "zero total demand");
+
+    if (!this->dep_profiles.empty() && !this->profile_bindings.empty())
+        add("DEPARTURE_PROFILE_READY", "PASS",
+            std::to_string(this->dep_profiles.size()) + " profile(s) bound (F03c)");
+    else if (validation)
+        add("DEPARTURE_PROFILE_READY", "BLOCKED-PROFILE_SOURCE_MISSING",
+            "no bound departure profile; validation requires a sourced profile");
+    else
+    {
+        def_profile = true;
+        add("DEPARTURE_PROFILE_READY", "PASS_WITH_DEFAULT",
+            "uniform in-period departures (S2b)");
+    }
+
+    if (od_vol > 0 && !this->dps.empty())
+        add("VEHICLE_GENERATION_READY", "PASS",
+            "S2a largest-remainder over " + std::to_string(this->dps.size()) + " period(s)");
+    else
+        add("VEHICLE_GENERATION_READY", "BLOCKED-NO_DEMAND",
+            "no demand periods or zero demand");
+
+    if (this->m_enable_simu)
+    {
+        std::string model = this->uses_point_queue_model() ? "point_queue"
+                          : this->uses_spatial_queue_model() ? "spatial_queue"
+                          : "kinematic_wave";
+        add("DNL_LOADING_READY", "PASS",
+            model + " at " + std::to_string(this->simu_res) + " s");
+    }
+    else
+        add("DNL_LOADING_READY", "WARN", "simulation disabled - UE only run");
+
+    if (this->enables_output())
+        add("RESULT_OUTPUT_READY", "PASS", "output enabled");
+    else
+        add("RESULT_OUTPUT_READY", "WARN", "outputs disabled");
+
+    if (this->m_enable_simu && this->saves_trajectory()
+        && this->saves_link_performance_dta())
+        add("VISUALIZATION_READY", "PASS",
+            "trajectories + TD link performance readable by GUI/NeXTA");
+    else
+        add("VISUALIZATION_READY", "WARN",
+            "trajectory or TD link output disabled - GUI view unavailable");
+
+    std::cout << "==== readiness (run_mode = "
+              << (validation ? "validation" : "smoke") << ") ====\n";
+    for (const auto& s : ss)
+        std::cout << "  " << s.name << ": " << s.level << " -- " << s.note << '\n';
+
+    if (this->enables_output())
+    {
+        std::ofstream f((this->output_dir / "readiness_report.json").string());
+        f << "{\n \"run_mode\": \"" << (validation ? "validation" : "smoke")
+          << "\",\n \"used_default_mu\": " << (def_mu ? "true" : "false")
+          << ",\n \"used_default_profile\": " << (def_profile ? "true" : "false")
+          << ",\n \"validation_eligible\": "
+          << (validation && blocked.empty() && !def_mu && !def_profile ? "true" : "false")
+          << ",\n \"blocked\": [";
+        for (std::vector<std::string>::size_type i = 0; i != blocked.size(); ++i)
+            f << (i ? ", " : "") << '"' << blocked[i] << '"';
+
+        f << "],\n \"statuses\": {";
+        for (std::vector<Status>::size_type i = 0; i != ss.size(); ++i)
+            f << (i ? ",\n  " : "\n  ") << '"' << ss[i].name << "\": {\"status\": \""
+              << ss[i].level << "\", \"note\": \"" << ss[i].note << "\"}";
+
+        f << "\n }\n}\n";
+    }
+
+    if (!blocked.empty())
+    {
+        std::string msg = "readiness BLOCKED:";
+        for (const auto& b : blocked)
+            msg += ' ' + b;
+
+        throw std::runtime_error{msg};
+    }
 }
 
 void NetworkHandle::validate_demand_periods()
@@ -1584,6 +1740,24 @@ void NetworkHandle::read_settings_yml(const std::string& file_path)
     {
         const auto at = this->ats.front();
         this->dps.push_back(new DemandPeriod{Demand{at}});
+    }
+
+    // V1-b: optional root run mode (default smoke). Validation blocks on
+    // any unsourced supply or profile - see report_readiness().
+    try
+    {
+        auto mode = settings["run_mode"].as<std::string>();
+        this->to_lower(mode);
+        if (mode == "validation"s)
+            this->run_mode = RunMode::validation;
+        else if (mode != "smoke"s)
+            throw std::invalid_argument{
+                "run_mode must be smoke or validation, got " + mode
+            };
+    }
+    catch (const YAML::Exception& e)
+    {
+        // absent -> smoke
     }
 
     try

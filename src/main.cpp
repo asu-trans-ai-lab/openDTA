@@ -46,6 +46,10 @@ try
     mini_timer.stop();
     mini_timer.broadcast("OpenDTA loads input in ");
 
+    // V1-b: nine READY statuses; any BLOCKED aborts here (after the full
+    // report) with a nonzero exit
+    nh.report_readiness();
+
     mini_timer.start();
 
     nh.find_ue();
