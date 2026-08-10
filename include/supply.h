@@ -1505,6 +1505,12 @@ public:
         return exit_queue.front();
     }
 
+    // F05-a: read-only iteration for the merge-allocation ready-count scan
+    const std::list<size_type>& get_exit_queue() const
+    {
+        return exit_queue;
+    }
+
     const Link* get_link() const
     {
         return link;
@@ -1526,7 +1532,7 @@ public:
         return link->get_period_travel_time(k);
     }
 
-    size_type get_outflow_cap(unsigned short i) const
+    size_type get_outflow_cap(size_type i) const
     {
         return outflow_cap[i];
     }

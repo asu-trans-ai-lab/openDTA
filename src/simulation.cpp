@@ -271,6 +271,202 @@ void NetworkHandle::setup_link_queues()
         link_queues.emplace_back(link, this->get_simulation_intervals(),
                                  this->simu_dur, this->simu_res);
     }
+
+    this->merge_credits.assign(link_queues.size(), 0);
+}
+
+size_type NetworkHandle::drain_exit_queue(LinkQueue& link_que, size_type t,
+                                          unsigned short dp_no, size_type& cum_dep,
+                                          size_type quota)
+{
+    size_type released = 0;
+    while (released != quota && link_que.has_outflow_cap(t) && !link_que.is_exit_queue_empty())
+    {
+        auto a_no = link_que.get_exit_queue_front();
+        auto& agent = this->get_agent(a_no);
+
+        if (agent.get_dep_interval() > t)
+            break;
+
+        if (agent.reaches_last_link())
+        {
+            // S0c-1: record the ACTUAL departure - the earliest
+            // time preset at entrance->exit transfer otherwise
+            // survives and under-reports the terminal-link travel
+            // time by the whole queueing delay
+            agent.set_dep_interval(t);
+            // S0c-2: account waiting on the terminal link exactly
+            // as the transfer branch does (same dp_no semantics;
+            // both call sites migrate to arrival-clock supply
+            // lookup together when mu(t) lands - see mini-spec)
+            link_que.update_waiting_time(t, agent.get_arr_interval(), dp_no);
+            link_que.increment_cum_dep(t);
+            ++cum_dep;
+        }
+        else
+        {
+            auto next_link_no = agent.get_next_link_no();
+            auto& next_link_que = this->get_link_queue(next_link_no);
+
+            // it will be checked over and over again, which is not efficient!
+            if (this->uses_spatial_queue_model())
+            {
+                // if t = 0, the whole while loop will be skipped as exit queue is empty.
+                auto num = next_link_que.get_waiting_vehicle_num_sq(t - 1);
+                if (num > next_link_que.get_spatial_capacity())
+                    break;
+            }
+            else if (this->uses_kinematic_wave_model())
+            {
+                auto num = next_link_que.get_waiting_vehicle_num_kw(t - 1);
+                if (num > next_link_que.get_spatial_capacity())
+                    break;
+            }
+
+            next_link_que.append_entr_queue(a_no);
+            // departure interval for the current link, i.e.,link_que, is t
+            agent.set_dep_interval(t);
+            // arrival interval for the next link, i.e., next_link_que, is t
+            agent.set_arr_interval(t, 1);
+
+            link_que.update_waiting_time(t, agent.get_arr_interval(), dp_no);
+            link_que.increment_cum_dep(t);
+            next_link_que.increment_cum_arr(t);
+        }
+
+        agent.move_to_next_link();
+        // remove agent (i.e., a_no) from exit queue
+        link_que.pop_exit_queue_front();
+        link_que.deduct_outflow_cap(t);
+        ++released;
+    }
+
+    return released;
+}
+
+bool NetworkHandle::apply_merge_allocation(const Node* node, size_type t,
+                                           unsigned short dp_no, size_type& cum_dep)
+{
+    // exit queues are empty at t = 0 and the receiving budget reads t - 1
+    if (!t)
+        return false;
+
+    // competing set: incoming links whose contiguous ready prefix (release-
+    // time due, within this interval's service) heads to ONE common
+    // downstream link. A ready terminal head or heads targeting different
+    // links make the node not a pure merge - sequential fallback.
+    struct Competitor {
+        size_type link_no;
+        size_type d;
+        double lanes;
+    };
+
+    const auto& in_links = node->get_incoming_links();
+    std::vector<Competitor> comp;
+    size_type next_no = 0;
+    bool has_next = false;
+    size_type total_d = 0;
+    double lanes_sum = 0;
+
+    for (const auto link : in_links)
+    {
+        auto& lq = this->get_link_queue(link->get_no());
+        auto cap = lq.get_outflow_cap(t);
+        size_type d = 0;
+        size_type head_next = 0;
+
+        for (auto a_no : lq.get_exit_queue())
+        {
+            if (d == cap)
+                break;
+
+            const auto& agent = this->get_agent(a_no);
+            if (agent.get_dep_interval() > t)
+                break;
+
+            if (agent.reaches_last_link())
+            {
+                if (!d)
+                    return false;
+
+                break;
+            }
+
+            auto nx = agent.get_next_link_no();
+            if (!d)
+                head_next = nx;
+            else if (nx != head_next)
+                break;
+
+            ++d;
+        }
+
+        if (!d)
+            continue;
+
+        if (!has_next)
+        {
+            next_no = head_next;
+            has_next = true;
+        }
+        else if (head_next != next_no)
+            return false;
+
+        comp.push_back({link->get_no(), d, static_cast<double>(link->get_lane_num())});
+        total_d += d;
+        lanes_sum += link->get_lane_num();
+    }
+
+    // fewer than two competing approaches: no allocation needed
+    if (comp.size() < 2)
+        return false;
+
+    // receiving budget R_t: storage headroom under the active model, capped
+    // by the downstream link's own per-interval service rate (the paper's
+    // cap_in = min{q_max, storage}) - a merge can bind before the
+    // downstream fills
+    auto& next_lq = this->get_link_queue(next_no);
+    auto occ = this->uses_spatial_queue_model()
+             ? next_lq.get_waiting_vehicle_num_sq(t - 1)
+             : next_lq.get_waiting_vehicle_num_kw(t - 1);
+    auto storage = next_lq.get_spatial_capacity();
+    double r_storage = storage > occ ? static_cast<double>(storage - occ) : 0;
+    double cap_intvl = next_lq.get_link()->get_cap() / SECONDS_IN_HOUR * this->simu_res;
+    double r = std::min(r_storage, cap_intvl);
+
+    if (r >= static_cast<double>(total_d))
+    {
+        // not binding: every approach can send its whole demand - take the
+        // sequential path and drop stale fractional credits
+        for (const auto& c : comp)
+            this->merge_credits[c.link_no] = 0;
+
+        return false;
+    }
+
+    // Daganzo-mid shares with lane-proportional priorities:
+    //   q_i = mid{ d_i, R - sum_{j != i} d_j, p_i R }
+    // fractional shares accumulate in deterministic per-link credits (the
+    // S4 accumulator concept - no RNG); releases never exceed the integer
+    // storage headroom
+    auto storage_budget = static_cast<size_type>(r_storage);
+    for (const auto& c : comp)
+    {
+        double a = static_cast<double>(c.d);
+        double b = r - static_cast<double>(total_d - c.d);
+        double p = c.lanes / lanes_sum * r;
+        auto share = a + b + p - std::max({a, b, p}) - std::min({a, b, p});
+        this->merge_credits[c.link_no] += share;
+
+        auto quota = std::min(static_cast<size_type>(this->merge_credits[c.link_no]),
+                              storage_budget);
+        auto released = this->drain_exit_queue(this->get_link_queue(c.link_no),
+                                               t, dp_no, cum_dep, quota);
+        this->merge_credits[c.link_no] -= released;
+        storage_budget -= released;
+    }
+
+    return true;
 }
 
 void NetworkHandle::run_simulation()
@@ -346,71 +542,25 @@ void NetworkHandle::run_simulation()
 
         for (const auto node : this->net.get_nodes())
         {
-            for (size_type i = 0, m = node->get_incoming_links().size(); i != m; ++i)
+            const auto& in_links = node->get_incoming_links();
+            const auto m = in_links.size();
+
+            // F05-a (M-1): Daganzo-mid allocation at true merges under a
+            // receiving model. Single-incoming nodes and the point-queue
+            // model keep the pre-F05 sequential path verbatim; when the
+            // allocation does not apply (no competition, budget not
+            // binding, mixed heads), the sequential fallback below runs
+            // with the legacy rotation order preserved.
+            if (m > 1 && !this->uses_point_queue_model()
+                && this->apply_merge_allocation(node, t, dp_no, cum_dep))
+                continue;
+
+            for (size_type i = 0; i != m; ++i)
             {
                 auto j = (t + i) % m;
-                auto link_no = node->get_incoming_links()[j]->get_no();
-                auto& link_que = this->get_link_queue(link_no);
-
-                while (link_que.has_outflow_cap(t) && !link_que.is_exit_queue_empty())
-                {
-                    auto a_no = link_que.get_exit_queue_front();
-                    auto& agent = this->get_agent(a_no);
-
-                    if (agent.get_dep_interval() > t)
-                        break;
-
-                    if (agent.reaches_last_link())
-                    {
-                        // S0c-1: record the ACTUAL departure - the earliest
-                        // time preset at entrance->exit transfer otherwise
-                        // survives and under-reports the terminal-link travel
-                        // time by the whole queueing delay
-                        agent.set_dep_interval(t);
-                        // S0c-2: account waiting on the terminal link exactly
-                        // as the transfer branch does (same dp_no semantics;
-                        // both call sites migrate to arrival-clock supply
-                        // lookup together when mu(t) lands - see mini-spec)
-                        link_que.update_waiting_time(t, agent.get_arr_interval(), dp_no);
-                        link_que.increment_cum_dep(t);
-                        ++cum_dep;
-                    }
-                    else
-                    {
-                        auto next_link_no = agent.get_next_link_no();
-                        auto& next_link_que = this->get_link_queue(next_link_no);
-
-                        // it will be checked over and over again, which is not efficient!
-                        if (this->uses_spatial_queue_model())
-                        {
-                            // if t = 0, the whole while loop will be skipped as exit queue is empty.
-                            auto num = next_link_que.get_waiting_vehicle_num_sq(t - 1);
-                            if (num > next_link_que.get_spatial_capacity())
-                                break;
-                        }
-                        else if (this->uses_kinematic_wave_model())
-                        {
-                            auto num = next_link_que.get_waiting_vehicle_num_kw(t - 1);
-                            if (num > next_link_que.get_spatial_capacity())
-                                break;
-                        }
-
-                        next_link_que.append_entr_queue(a_no);
-                        // departure interval for the current link, i.e.,link_que, is t
-                        agent.set_dep_interval(t);
-                        // arrival interval for the next link, i.e., next_link_que, is t
-                        agent.set_arr_interval(t, 1);
-
-                        link_que.update_waiting_time(t, agent.get_arr_interval(), dp_no);
-                        link_que.increment_cum_dep(t);
-                        next_link_que.increment_cum_arr(t);
-                    }
-
-                    agent.move_to_next_link();
-                    // remove agent (i.e., a_no) from exit queue
-                    link_que.pop_exit_queue_front();
-                    link_que.deduct_outflow_cap(t);
-                }
+                auto& link_que = this->get_link_queue(in_links[j]->get_no());
+                this->drain_exit_queue(link_que, t, dp_no, cum_dep,
+                                       std::numeric_limits<size_type>::max());
             }
         }
     }

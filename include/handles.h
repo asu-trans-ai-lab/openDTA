@@ -222,6 +222,17 @@ private:
     void setup_agents();
     void setup_link_queues();
 
+    // F05-a: exit-queue drain shared by the sequential path and the merge
+    // branch; quota bounds the vehicles released this call (SIZE_MAX =
+    // unbounded, the pre-F05 behavior). Returns the number released.
+    size_type drain_exit_queue(LinkQueue& link_que, size_type t,
+                               unsigned short dp_no, size_type& cum_dep,
+                               size_type quota);
+    // F05-a: Daganzo-mid merge allocation at a multi-incoming node under a
+    // receiving model; returns true if it handled the node this interval
+    bool apply_merge_allocation(const Node* node, size_type t,
+                                unsigned short dp_no, size_type& cum_dep);
+
     ColumnVec& get_column_vec(size_type i);
     std::string get_link_path_str(const Column& c);
     std::string get_node_path_str(const Column& c);
@@ -298,6 +309,9 @@ private:
     TrafficFlowModel tfm = TrafficFlowModel::point_queue;
 
     std::vector<LinkQueue> link_queues;
+    // F05-a: deterministic fractional-share accumulators for the merge
+    // allocation, indexed by link no (the S4 accumulator concept - no RNG)
+    std::vector<double> merge_credits;
 
     // the following two can be combined
     std::vector<Agent> agents;
