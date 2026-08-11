@@ -1,0 +1,3 @@
+link_id,window_start,window_end,mu_value,mu_unit,per_lane_or_all_lanes,lanes_open,source,quality_flag
+1,0700,0730,1800,vph,all_lanes,1,explicit,good
+1,0730,0800,600,vph,all_lanes,1,workzone_plan,good

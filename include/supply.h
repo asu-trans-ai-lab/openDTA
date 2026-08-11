@@ -1374,10 +1374,31 @@ public:
         return whole + (static_cast<double>(seed) / 65521 < frac ? 1 : 0);
     }
 
+    // V1-c: variable-rate draw for mu(t) windows - same LCG stream, same
+    // Bernoulli orientation; the constant path above stays byte-identical
+    size_type next(double rate)
+    {
+        auto w = static_cast<size_type>(std::floor(rate));
+        auto fr = rate - std::floor(rate);
+        if (fr < 1e-12)
+            return w;
+
+        seed = static_cast<unsigned int>((17364ULL * seed) % 65521);
+        return w + (static_cast<double>(seed) / 65521 < fr ? 1 : 0);
+    }
+
 private:
     size_type whole;
     double frac;
     unsigned int seed;
+};
+
+// V1-c: a mu(t) window in simulation-interval space, [beg, end) at a
+// per-interval service rate (veh per interval, possibly fractional)
+struct MuWindow {
+    size_type beg;
+    size_type end;
+    double rate;
 };
 
 // a wrapper class of link object and queues for simulation purpose
@@ -1386,8 +1407,11 @@ public:
     LinkQueue() = delete;
 
     // cap : link cap, n: total number of simulation interval,
-    // k: simulation duration, r : simulation resolution
-    LinkQueue(const Link* link_, size_type n, unsigned short k, unsigned short r)
+    // k: simulation duration, r : simulation resolution,
+    // mu_windows: V1-c explicit mu(t) spans (sorted, non-overlapping) or
+    // nullptr for the capacity-derived constant (the pre-V1-c behavior)
+    LinkQueue(const Link* link_, size_type n, unsigned short k, unsigned short r,
+              const std::vector<MuWindow>* mu_windows = nullptr)
         : link {link_}, res {r}, cum_arr (n, 0), cum_dep (n, 0),
           waiting_time (k, 0), outflow_cap(n, 0)
     {
@@ -1395,8 +1419,25 @@ public:
         // replacing the former single whole-horizon draw (defect F-3:
         // random_device-seeded, inverted Bernoulli, horizon-constant)
         ServiceDiscretizer sd {link->get_cap() / SECONDS_IN_HOUR * res};
-        for (auto& c : outflow_cap)
-            c = sd.next();
+        if (mu_windows == nullptr)
+        {
+            for (auto& c : outflow_cap)
+                c = sd.next();
+        }
+        else
+        {
+            // V1-c: piecewise mu(t); intervals not covered by any window
+            // fall back to the capacity constant on the SAME LCG stream
+            auto it = mu_windows->cbegin();
+            for (size_type i = 0; i != outflow_cap.size(); ++i)
+            {
+                while (it != mu_windows->cend() && it->end <= i)
+                    ++it;
+
+                outflow_cap[i] = (it != mu_windows->cend() && it->beg <= i)
+                               ? sd.next(it->rate) : sd.next();
+            }
+        }
 
         // F05-pre (M-13): FD parameters come from the link (per-link optional
         // columns in link.csv), defaulting to the former global constants

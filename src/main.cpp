@@ -30,6 +30,8 @@ try
 
     nh.read_settings();
     nh.read_network();
+    // V1-c: optional explicit mu(t) supply table (the SupplyProvider front)
+    nh.read_link_supply();
 
     if (nh.uses_existing_columns())
         nh.load_columns();

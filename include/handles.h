@@ -38,6 +38,17 @@ enum class RunMode {
     smoke, validation
 };
 
+// V1-c: one row of link_supply.csv - an absolute-clock mu(t) span.
+// mu_vph is normalized to ALL lanes at parse time; lanes_open is parsed
+// and stored (schema frozen) but only the mu dimension acts in v1.
+struct SupplyWindow {
+    unsigned beg_sec;
+    unsigned end_sec;
+    double mu_vph;
+    double lanes_open;
+    std::string source;
+};
+
 class NetworkHandle {
 public:
     NetworkHandle() = default;
@@ -65,6 +76,9 @@ public:
     // V1-b: print the nine READY statuses, write readiness_report.json,
     // and throw (nonzero exit) if any status is BLOCKED
     void report_readiness();
+    // V1-c: load the optional link_supply.csv (THE explicit mu(t) input);
+    // unit or lane-basis ambiguity aborts with BLOCKED-SUPPLY_UNIT_UNDEFINED
+    void read_link_supply();
 
     void setup_working_dirs(const char*, const char*);
 
@@ -318,6 +332,8 @@ private:
 
     TrafficFlowModel tfm = TrafficFlowModel::point_queue;
     RunMode run_mode = RunMode::smoke;
+    // V1-c: per-link mu(t) windows keyed by link no (sorted, validated)
+    std::map<size_type, std::vector<SupplyWindow>> link_supply;
 
     std::vector<LinkQueue> link_queues;
     // F05-a: deterministic fractional-share accumulators for the merge

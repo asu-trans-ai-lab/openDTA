@@ -102,6 +102,122 @@ void NetworkHandle::update_simulation_settings(unsigned short res, const std::st
     this->simu_dur = et - st;
 }
 
+// V1-c: link_supply.csv - THE explicit mu(t) input (spec section 2).
+// Absolute-clock windows (HHMM or HHMMSS, [start, end)), mu in veh/h,
+// per_lane values scaled to all lanes here so the engine sees one basis.
+void NetworkHandle::read_link_supply()
+{
+    auto path = (this->input_dir / "link_supply.csv").string();
+    if (!fs::exists(path))
+        return;
+
+    auto parse_clock = [](const std::string& s) -> unsigned {
+        if (s.size() != 4 && s.size() != 6)
+            throw std::runtime_error{
+                "link_supply.csv: window token '" + s + "' is not HHMM or HHMMSS"
+            };
+
+        auto h = std::stoul(s.substr(0, 2));
+        auto m = std::stoul(s.substr(2, 2));
+        auto sec = s.size() == 6 ? std::stoul(s.substr(4, 2)) : 0;
+        return static_cast<unsigned>(h * 3600 + m * 60 + sec);
+    };
+
+    auto reader = miocsv::DictReader(path);
+    for (const auto& line : reader)
+    {
+        std::string link_id = line["link_id"];
+        const Link* link = nullptr;
+        try
+        {
+            link = this->net.get_link(link_id);
+        }
+        catch (const std::exception& e)
+        {
+            throw std::runtime_error{
+                "link_supply.csv references unknown link_id " + link_id
+            };
+        }
+
+        auto beg = parse_clock(line["window_start"]);
+        auto end = parse_clock(line["window_end"]);
+        if (end <= beg)
+            throw std::runtime_error{
+                "link_supply.csv: empty or reversed window for link " + link_id
+            };
+
+        auto unit = line["mu_unit"];
+        this->to_lower(unit);
+        if (unit != "vph"s && unit != "veh/h"s)
+            throw std::runtime_error{
+                "BLOCKED-SUPPLY_UNIT_UNDEFINED: link " + link_id
+                + " mu_unit '" + unit + "' (must be vph or veh/h)"
+            };
+
+        auto basis = line["per_lane_or_all_lanes"];
+        this->to_lower(basis);
+        if (basis != "per_lane"s && basis != "all_lanes"s)
+            throw std::runtime_error{
+                "BLOCKED-SUPPLY_UNIT_UNDEFINED: link " + link_id
+                + " per_lane_or_all_lanes '" + basis + "'"
+            };
+
+        auto mu = std::stod(line["mu_value"]);
+        if (mu < 0)
+            throw std::runtime_error{
+                "link_supply.csv: negative mu_value for link " + link_id
+            };
+
+        if (basis == "per_lane"s)
+            mu *= link->get_lane_num();
+
+        double lanes_open = link->get_lane_num();
+        try
+        {
+            auto lo = std::stod(line["lanes_open"]);
+            if (lo >= 0)
+                lanes_open = lo;
+        }
+        catch (const std::exception& e)
+        {
+            // optional; only the mu dimension acts in v1 anyway
+        }
+
+        std::string source;
+        try
+        {
+            source = line["source"];
+        }
+        catch (const std::exception& e)
+        {
+            // optional
+        }
+
+        this->link_supply[link->get_no()].push_back(
+            {beg, end, mu, lanes_open, source});
+    }
+
+    // sort and reject overlaps per link
+    for (auto& [no, wins] : this->link_supply)
+    {
+        std::sort(wins.begin(), wins.end(),
+                  [](const SupplyWindow& a, const SupplyWindow& b) {
+                      return a.beg_sec < b.beg_sec;
+                  });
+        for (std::vector<SupplyWindow>::size_type i = 1; i != wins.size(); ++i)
+        {
+            if (wins[i].beg_sec < wins[i - 1].end_sec)
+                throw std::runtime_error{
+                    "link_supply.csv: overlapping windows on link no "
+                    + std::to_string(no)
+                };
+        }
+    }
+
+    std::cout << "link_supply.csv loaded: " << this->link_supply.size()
+              << " link(s) with explicit mu(t)\n";
+}
+
 // V1-b: the nine READY statuses (OPENDTA_V1_MVP_SPEC.md section 1). Every
 // run prints all nine before any computation; any BLOCKED aborts AFTER the
 // full report so the user sees where they stand without reading configs.
@@ -134,18 +250,26 @@ void NetworkHandle::report_readiness()
     else
         add("NETWORK_READY", "BLOCKED-NETWORK_EMPTY", "no nodes or links loaded");
 
-    // mu(t) is THE explicit primary supply input (spec section 2); until
-    // SupplyProvider/link_supply.csv lands (V1-c), every run derives a
-    // constant mu from link capacity - a disclosed default in smoke mode
-    // and a blocker in validation mode
-    if (validation)
+    // mu(t) is THE explicit primary supply input (spec section 2): links
+    // covered by link_supply.csv use it; the rest fall back to the
+    // capacity-derived constant - a disclosed default in smoke mode and a
+    // blocker in validation mode
+    auto n_supply = this->link_supply.size();
+    auto n_default = n_links > n_supply ? n_links - n_supply : 0;
+    if (n_supply && !n_default)
+        add("SUPPLY_MU_READY", "PASS",
+            std::to_string(n_supply) + " link(s) with explicit mu(t) from link_supply.csv");
+    else if (validation)
         add("SUPPLY_MU_READY", "BLOCKED-MU_T_NOT_VALIDATED",
-            "no SLC/explicit mu(t) source; SupplyProvider lands in V1-c");
+            n_supply ? std::to_string(n_default) + " link(s) without an explicit mu(t) source"
+                     : "no SLC/explicit mu(t) source (link_supply.csv absent)");
     else
     {
         def_mu = true;
         add("SUPPLY_MU_READY", "PASS_WITH_DEFAULT",
-            "constant mu from link capacity (period_capacity level)");
+            n_supply ? std::to_string(n_supply) + " link(s) explicit, "
+                       + std::to_string(n_default) + " on capacity default"
+                     : "constant mu from link capacity (period_capacity level)");
     }
 
     size_type n_cols = 0;
@@ -233,6 +357,8 @@ void NetworkHandle::report_readiness()
         f << "{\n \"run_mode\": \"" << (validation ? "validation" : "smoke")
           << "\",\n \"used_default_mu\": " << (def_mu ? "true" : "false")
           << ",\n \"used_default_profile\": " << (def_profile ? "true" : "false")
+          << ",\n \"links_from_supply\": " << n_supply
+          << ",\n \"links_from_default\": " << n_default
           << ",\n \"validation_eligible\": "
           << (validation && blocked.empty() && !def_mu && !def_profile ? "true" : "false")
           << ",\n \"blocked\": [";
