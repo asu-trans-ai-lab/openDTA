@@ -59,12 +59,12 @@ per-mode refinement. And for the third codebase in a row:
 `p_agent->PCE_unit_size = 1` hard-coded with the real conversion commented
 out — PCE remains rebuild-with-own-gold, never "already validated".
 
-## M-19 — The NVTA release output family (F08 scope, from output.h)
+## M-19 — The regional release output family (F08 scope, from output.h)
 
 Classical emits 21 output files; the release-relevant set beyond openDTA's
 current four:
 
-| Output | NVTA relevance |
+| Output | Release relevance |
 | --- | --- |
 | `link_performance_summary.csv`, `td_link_performance.csv` | period + time-dependent link reporting |
 | `od_performance_summary.csv` | OD travel-time/distance skims — MPO deliverable |
@@ -75,7 +75,7 @@ current four:
 | `internal_model_link/node.csv`, `internal_zone_mapping.csv` | internal-vs-external ID audit — the consensus "stable external IDs" rule made inspectable |
 | `trajectory.csv`, `agent.csv` | agent layer (ours is already stronger post-S0d) |
 
-F08's mini-spec should enumerate which of these NVTA/AECOM actually needs
+F08's mini-spec should enumerate which of these the regional deployment actually needs
 (proposal: od_performance_summary, system_performance_summary, district +
 subarea, td_link_performance) rather than porting all 21.
 
@@ -83,14 +83,14 @@ subarea, td_link_performance) rather than porting all 21.
 
 - `data/02_Sioux_Falls/standard_solution_link_performance_comparison.xlsx`
   — a UE standard solution: a drop-in L1-style gold for the assignment side.
-- `data/05_Tucson_planning_network` — planning-scale (G9/NVTA scale-up
-  rehearsal between Chicago Sketch and NVTA).
+- `data/05_Tucson_planning_network` — planning-scale (G9 scale-up
+  rehearsal between Chicago Sketch and the regional network).
 - `data/04_ODME_node_link_demand` — minimal ODME fixture for the Phase-2
   observation-layer work; `src/ODME.h` (15 KB) is a compact path-flow
   gradient ODME matching paper §4 — portable later as an application-layer
   module per the boundary rule (never into the DNL core).
 - `data/FOCUSING_use-cases-*.docx/xlsx` — use-case master list; mine for
-  NVTA acceptance scenarios before the F08/F07 mini-specs.
+  regional acceptance scenarios before the F08/F07 mini-specs.
 
 ## Sequence impact
 
