@@ -137,7 +137,7 @@ def read_zone_order(taplite_dir):
     sequence in node.csv order of first appearance of a nonzero zone_id;
     DTAC origin blocks are written in that sequence while destinations
     carry external ids. Validated empirically on dense (H01) and sparse
-    (LDN034) id universes — a wrong order is caught by the OD-not-in-demand
+    (subarea) id universes — a wrong order is caught by the OD-not-in-demand
     check and the PT-1 gate."""
     order = []
     seen = set()
