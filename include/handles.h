@@ -12,6 +12,8 @@
 #include <demand.h>
 #include <supply.h>
 
+#include <chrono>
+
 #ifdef __cpp_lib_filesystem
 #include <filesystem>
 #else
@@ -36,6 +38,18 @@ enum class TrafficFlowModel {
 // or profile - see OPENDTA_V1_MVP_SPEC.md section 3
 enum class RunMode {
     smoke, validation
+};
+
+// V1-d: one congestion episode on one link - a contiguous run of minutes
+// with a nonempty queue. P and v_T2 are read off this table so the scalar
+// in run_summary.json and the per-episode row can never disagree.
+struct QueueEpisode {
+    std::string link_id;
+    unsigned start_min;
+    unsigned end_min;
+    size_type max_queue;
+    double v_t2_mph;
+    double total_delay_veh_min;
 };
 
 // V1-c: one row of link_supply.csv - an absolute-clock mu(t) span.
@@ -79,6 +93,10 @@ public:
     // V1-c: load the optional link_supply.csv (THE explicit mu(t) input);
     // unit or lane-basis ambiguity aborts with BLOCKED-SUPPLY_UNIT_UNDEFINED
     void read_link_supply();
+    // V1-d: the four required output artifacts (spec section 6) written from
+    // ONE metric pass - run_summary.json, link_time_series.csv,
+    // queue_time_series.csv, conservation_report.csv
+    void output_run_reports();
 
     void setup_working_dirs(const char*, const char*);
 
@@ -334,6 +352,13 @@ private:
     RunMode run_mode = RunMode::smoke;
     // V1-c: per-link mu(t) windows keyed by link no (sorted, validated)
     std::map<size_type, std::vector<SupplyWindow>> link_supply;
+    // V1-d: readiness outcome retained so run_summary.json can echo the nine
+    // statuses (all_gate_status) and the provenance stamps
+    std::vector<std::pair<std::string, std::string>> gate_status;
+    bool used_default_mu = false;
+    bool used_default_profile = false;
+    bool validation_eligible = false;
+    std::chrono::steady_clock::time_point wall_start = std::chrono::steady_clock::now();
 
     std::vector<LinkQueue> link_queues;
     // F05-a: deterministic fractional-share accumulators for the merge

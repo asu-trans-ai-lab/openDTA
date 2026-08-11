@@ -351,6 +351,16 @@ void NetworkHandle::report_readiness()
     for (const auto& s : ss)
         std::cout << "  " << s.name << ": " << s.level << " -- " << s.note << '\n';
 
+    // V1-d: retain the outcome so run_summary.json can echo all_gate_status
+    // and the provenance stamps without recomputing (and possibly disagreeing)
+    this->gate_status.clear();
+    for (const auto& s : ss)
+        this->gate_status.emplace_back(s.name, s.level);
+
+    this->used_default_mu = def_mu;
+    this->used_default_profile = def_profile;
+    this->validation_eligible = validation && blocked.empty() && !def_mu && !def_profile;
+
     if (this->enables_output())
     {
         std::ofstream f((this->output_dir / "readiness_report.json").string());
@@ -360,7 +370,7 @@ void NetworkHandle::report_readiness()
           << ",\n \"links_from_supply\": " << n_supply
           << ",\n \"links_from_default\": " << n_default
           << ",\n \"validation_eligible\": "
-          << (validation && blocked.empty() && !def_mu && !def_profile ? "true" : "false")
+          << (this->validation_eligible ? "true" : "false")
           << ",\n \"blocked\": [";
         for (std::vector<std::string>::size_type i = 0; i != blocked.size(); ++i)
             f << (i ? ", " : "") << '"' << blocked[i] << '"';
@@ -2247,6 +2257,324 @@ void NetworkHandle::output_trajectories()
     }
 
     std::cout << "check " << this->m_traj_filename << " in " << this->output_dir <<  " for agent trajectory under DTA\n";
+}
+
+// V1-d: the four required output artifacts (OPENDTA_V1_MVP_SPEC.md section
+// 6), written from ONE metric pass so P, v_T2 and the N-accounting cannot
+// drift between files. Nothing here alters an existing output: the added
+// mu / spillback columns live in the new link_time_series.csv, exactly as
+// the spec names it, leaving the frozen baselines byte-identical.
+void NetworkHandle::output_run_reports()
+{
+    const unsigned short num = this->cast_minute_to_interval(1);
+    const auto n_intvl = this->get_simulation_intervals();
+    const double intvl_hours = static_cast<double>(this->simu_res) / SECONDS_IN_HOUR;
+
+    auto lts = miocsv::Writer(this->output_dir.string() + "/link_time_series.csv");
+    lts.write_row_raw("link_id", "from_node_id", "to_node_id", "time_period",
+                      "minute", "volume", "inflow", "outflow", "mu_vph",
+                      "travel_time", "speed", "CA", "CD", "density", "queue",
+                      "spillback_flag");
+
+    std::vector<QueueEpisode> episodes;
+    double vmt = 0;
+    double vht = 0;
+    size_type remaining = 0;
+    size_type queued_links = 0;
+    size_type spillback_links = 0;
+
+    for (const auto& lq : this->link_queues)
+    {
+        const auto link = lq.get_link();
+
+        // VMT / VHT / terminal occupancy over EVERY interval (not just the
+        // minute samples): CD(T) counts the vehicles that traversed the link,
+        // and sum_t (CA - CD) is the exact N-curve area, i.e. time in system
+        vmt += static_cast<double>(lq.get_cumulative_departure(n_intvl - 1))
+             * link->get_length();
+        for (size_type t = 0; t != n_intvl; ++t)
+        {
+            vht += static_cast<double>(lq.get_cumulative_arrival(t)
+                                       - lq.get_cumulative_departure(t)) * intvl_hours;
+        }
+
+        remaining += lq.get_cumulative_arrival(n_intvl - 1)
+                   - lq.get_cumulative_departure(n_intvl - 1);
+
+        if (!link->get_length())
+            continue;
+
+        // the demand-period index must restart with every link - it indexes
+        // the per-period fftt used by travel_time / speed / queue
+        unsigned short dp_no = 0;
+        size_type ub = this->get_end_simulation_interval(dp_no);
+        bool in_episode = false;
+        bool link_spilled = false;
+        bool link_queued = false;
+        QueueEpisode ep {};
+
+        for (size_type t = 0; t != n_intvl; t += num)
+        {
+            if (t >= ub)
+            {
+                if (dp_no < this->dps.size() - 1)
+                    ub = this->get_end_simulation_interval(++dp_no);
+                else
+                    ub = n_intvl;
+            }
+
+            auto minute = this->cast_interval_to_minute(t);
+            auto ca = lq.get_cumulative_arrival(t);
+            auto cd = lq.get_cumulative_departure(t);
+            auto prev = t >= num ? t - num : 0;
+            auto inflow = t >= num ? ca - lq.get_cumulative_arrival(prev) : ca;
+            auto outflow = t >= num ? cd - lq.get_cumulative_departure(prev) : cd;
+
+            // the mu the engine was GIVEN, summed over this minute's
+            // intervals, so the user can read back the supply the engine used
+            // against the supply they wrote in link_supply.csv (V1-c). The
+            // realized service is the separate `outflow` column.
+            double served = 0;
+            for (size_type i = t, e = std::min(t + num, n_intvl); i != e; ++i)
+                served += lq.get_mu_rate(i);
+
+            double mu_vph = served * MINUTES_IN_HOUR;
+
+            // the spillback test is the engine's OWN acceptance test
+            // (simulation.cpp transfer gate), so the flag cannot disagree
+            // with the physics that produced it; the point-queue model has
+            // no spatial constraint, hence no spillback by construction
+            bool spill = false;
+            if (this->uses_spatial_queue_model())
+                spill = lq.get_waiting_vehicle_num_sq(t) > lq.get_spatial_capacity();
+            else if (this->uses_kinematic_wave_model())
+                spill = lq.get_waiting_vehicle_num_kw(t) > lq.get_spatial_capacity();
+
+            if (spill)
+                link_spilled = true;
+
+            auto queue = lq.get_queue(t, dp_no);
+            auto speed = lq.get_speed(t, dp_no);
+
+            lts.append(link->get_id());
+            lts.append(this->get_head_node_id(link));
+            lts.append(this->get_tail_node_id(link));
+            lts.append(this->dps[dp_no]->get_period());
+            lts.append(minute);
+            lts.append(lq.get_volume(t));
+            lts.append(inflow);
+            lts.append(outflow);
+            lts.append(mu_vph);
+            lts.append(lq.get_travel_time(t, dp_no));
+            lts.append(speed);
+            lts.append(ca);
+            lts.append(cd);
+            lts.append(lq.get_density(t));
+            lts.append(queue);
+            lts.append(spill ? 1 : 0, '\n');
+
+            // congestion episodes: contiguous minutes with a nonempty queue
+            if (queue > 0)
+            {
+                link_queued = true;
+                if (!in_episode)
+                {
+                    in_episode = true;
+                    ep = QueueEpisode{link->get_id(), minute, minute, 0, speed, 0};
+                }
+
+                ep.end_min = minute;
+                ep.max_queue = std::max(ep.max_queue, queue);
+                ep.v_t2_mph = std::min(ep.v_t2_mph, speed);
+                ep.total_delay_veh_min += static_cast<double>(queue);
+            }
+            else if (in_episode)
+            {
+                in_episode = false;
+                episodes.push_back(ep);
+            }
+        }
+
+        if (in_episode)
+            episodes.push_back(ep);
+
+        if (link_queued)
+            ++queued_links;
+
+        if (link_spilled)
+            ++spillback_links;
+    }
+
+    // P and v_T2 both come from the SAME longest episode, so the two
+    // scalars always describe one bottleneck
+    unsigned p_max = 0;
+    double v_t2 = 0;
+    std::string p_max_link;
+    for (const auto& e : episodes)
+    {
+        unsigned dur = e.end_min - e.start_min + 1;
+        if (dur > p_max)
+        {
+            p_max = dur;
+            v_t2 = e.v_t2_mph;
+            p_max_link = e.link_id;
+        }
+    }
+
+    auto qts = miocsv::Writer(this->output_dir.string() + "/queue_time_series.csv");
+    qts.write_row_raw("link_id", "episode_id", "start_minute", "end_minute",
+                      "duration_minutes", "max_queue", "v_T2_mph",
+                      "total_delay_veh_min");
+    for (std::vector<QueueEpisode>::size_type i = 0; i != episodes.size(); ++i)
+    {
+        const auto& e = episodes[i];
+        qts.append(e.link_id);
+        qts.append(i + 1);
+        qts.append(e.start_min);
+        qts.append(e.end_min);
+        qts.append(e.end_min - e.start_min + 1);
+        qts.append(e.max_queue);
+        qts.append(e.v_t2_mph);
+        qts.append(e.total_delay_veh_min, '\n');
+    }
+
+    // PT-6 N-accounting. `entered` mirrors the engine's own loading loop;
+    // `remaining` is recomputed INDEPENDENTLY from the link N-curves above,
+    // so `entered == exited + remaining` is a real cross-source check on
+    // vehicle loss, not a restatement of one counter.
+    size_type generated = this->agents.size();
+    size_type entered = 0;
+    size_type exited = 0;
+    double agent_tt_hours = 0;
+    for (size_type t = 0; t != n_intvl; ++t)
+    {
+        if (!this->has_dep_agents(t))
+            continue;
+
+        for (auto a_no : this->get_agents_at_interval(t))
+        {
+            if (this->get_agent(a_no).get_link_num())
+                ++entered;
+        }
+    }
+
+    // NOT completes_trip(): that predicate reads the uninitialized sentinel
+    // as a completion and would report every stranded vehicle as arrived
+    // (see the defect note in demand.h). A vehicle has left the network only
+    // if its final-link departure actually fell inside the horizon.
+    for (const auto& a : this->agents)
+    {
+        if (a.get_final_dep_interval() < n_intvl)
+        {
+            ++exited;
+            agent_tt_hours += this->cast_interval_to_minute_double(a.get_travel_interval())
+                            / MINUTES_IN_HOUR;
+        }
+    }
+
+    size_type not_entered = generated > entered ? generated - entered : 0;
+    bool conservation_ok = entered == exited + remaining;
+
+    auto cons = miocsv::Writer(this->output_dir.string() + "/conservation_report.csv");
+    cons.write_row_raw("check", "scope", "expected", "actual", "abs_diff",
+                       "tolerance", "status");
+
+    auto write_check = [&cons](const std::string& name, const std::string& scope,
+                               double expected, double actual, double tol) {
+        double diff = std::fabs(expected - actual);
+        cons.append(name);
+        cons.append(scope);
+        cons.append(expected);
+        cons.append(actual);
+        cons.append(diff);
+        cons.append(tol);
+        cons.append(diff <= tol ? "PASS" : "FAIL", '\n');
+    };
+
+    write_check("vehicle_accounting_PT6", "network",
+                static_cast<double>(entered),
+                static_cast<double>(exited + remaining), 0);
+
+    // the N-curve area must equal the sum of agent travel times - two
+    // independent bookkeepings of the same physical time. Only meaningful
+    // once every vehicle has finished; otherwise the in-network time has no
+    // trajectory counterpart yet.
+    if (remaining == 0 && not_entered == 0)
+        write_check("VHT_link_vs_agent", "network", vht, agent_tt_hours, 0.02);
+    else
+    {
+        cons.append("VHT_link_vs_agent");
+        cons.append("network");
+        cons.append(vht);
+        cons.append(agent_tt_hours);
+        cons.append("");
+        cons.append("");
+        cons.append("SKIPPED-VEHICLES_STILL_IN_NETWORK", '\n');
+    }
+
+    for (const auto& lq : this->link_queues)
+    {
+        const auto link = lq.get_link();
+        if (!link->get_length())
+            continue;
+
+        auto ca = lq.get_cumulative_arrival(n_intvl - 1);
+        auto cd = lq.get_cumulative_departure(n_intvl - 1);
+        // a link can never have discharged more than it received
+        write_check("terminal_occupancy_nonnegative", "link " + link->get_id(),
+                    1, ca >= cd ? 1 : 0, 0);
+
+        bool monotone = true;
+        for (size_type t = 1; t != n_intvl; ++t)
+        {
+            if (lq.get_cumulative_departure(t) < lq.get_cumulative_departure(t - 1))
+            {
+                monotone = false;
+                break;
+            }
+        }
+
+        write_check("CD_monotone", "link " + link->get_id(), 1, monotone ? 1 : 0, 0);
+    }
+
+    std::chrono::duration<double> elapsed = std::chrono::steady_clock::now() - this->wall_start;
+
+    std::ofstream f((this->output_dir / "run_summary.json").string());
+    f << "{\n \"run_mode\": \""
+      << (this->run_mode == RunMode::validation ? "validation" : "smoke")
+      << "\",\n \"validation_eligible\": " << (this->validation_eligible ? "true" : "false")
+      << ",\n \"used_default_mu\": " << (this->used_default_mu ? "true" : "false")
+      << ",\n \"used_default_profile\": " << (this->used_default_profile ? "true" : "false")
+      << ",\n \"vehicles\": {"
+      << "\n  \"generated\": " << generated
+      << ",\n  \"entered\": " << entered
+      << ",\n  \"not_entered\": " << not_entered
+      << ",\n  \"exited\": " << exited
+      << ",\n  \"remaining\": " << remaining
+      << ",\n  \"conservation_ok\": " << (conservation_ok ? "true" : "false")
+      << "\n },\n \"network\": {"
+      << "\n  \"VMT\": " << vmt
+      << ",\n  \"VHT\": " << vht
+      << ",\n  \"avg_speed_mph\": " << (vht > 0 ? vmt / vht : 0)
+      << ",\n  \"P_max_minutes\": " << p_max
+      << ",\n  \"P_max_link_id\": \"" << p_max_link << '"'
+      << ",\n  \"v_T2_mph\": " << v_t2
+      << ",\n  \"queued_link_count\": " << queued_links
+      << ",\n  \"spillback_link_count\": " << spillback_links
+      << "\n },\n \"runtime_seconds\": " << elapsed.count()
+      << ",\n \"all_gate_status\": {";
+    for (std::vector<std::pair<std::string, std::string>>::size_type i = 0;
+         i != this->gate_status.size(); ++i)
+    {
+        f << (i ? ",\n  " : "\n  ") << '"' << this->gate_status[i].first
+          << "\": \"" << this->gate_status[i].second << '"';
+    }
+
+    f << "\n }\n}\n";
+
+    std::cout << "check run_summary.json, link_time_series.csv, "
+                 "queue_time_series.csv and conservation_report.csv in "
+              << this->output_dir << '\n';
 }
 
 void NetworkHandle::setup_working_dirs(const char* argv1, const char* argv2)
