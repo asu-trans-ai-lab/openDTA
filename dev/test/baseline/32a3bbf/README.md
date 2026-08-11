@@ -84,6 +84,31 @@ minute 89: reported 32.8 vs true 30.75). Divisor now counts the same
 [i, i+1min) arrivals the bucket accrues. Only waiting/TT/speed columns of
 link_performance_dta.csv changed; trajectories byte-unchanged.
 
+**V1-d re-freeze (feature/v1d-fix-completion-and-period):** `completes_trip()`
+tested `dep_intvls.front() > 0` while `initialize_intervals()` fills that
+vector with `size_type::max()` — the sentinel is > 0, so every vehicle that
+never reached its final link reported as ARRIVED. `output_trajectories()` now
+additionally range-checks the final-link departure against the simulation
+horizon, because `increment_dep_interval()` schedules `arrival + waiting`,
+which can land past the last simulated interval. Only the `trip_completed`
+column moved, on **1750 of 7000 rows in each sim variant, all `c` → `n`, none
+`n` → `c`** — the vehicles departing after 07:45 that cannot clear a 15-minute
+trip before the 08:00 horizon. Every other column, and both UE outputs, are
+byte-unchanged. `link_performance_dta.csv` is byte-unchanged here because the
+same change re-scoped `dp_no` per link and Two_Corridor's demand periods share
+an fftt (the period LABEL was wrong for every link after the first; on this
+network there is only one length-bearing link, so no bytes move).
+
+Known residual, NOT fixed (defect D-3, filed): `trip_completed` is still
+optimistic. The link N-curves are the physical record of release, and for
+Two_Corridor point queue they show CD(T) = 2205 while the agent records claim
+5250 completions — the gap is vehicles holding a pre-scheduled departure while
+still queued at the horizon. Closing it requires the kernel to stamp an actual
+release flag (`simulation.cpp`, protected), so `run_summary.json` reports the
+N-curve-derived `remaining` as authoritative and carries
+`exited_agent_records` beside it, with `conservation_ok: false` whenever the
+two disagree.
+
 **Comparison rule (waiver deleted):** ALL columns of every output file,
 including `travel_time` and `speed`, compare **byte-exact**. The
 `link_performance_dta.csv` references below were re-frozen with the S0
@@ -101,12 +126,12 @@ C69F13AC21A1D545       223  Two_Corridor_default/columns.csv
 9701BD5B430DB436       280  Two_Corridor_default/link_performance_ue.csv
 7A5007EAC248FD49       175  Two_Corridor_sim_kinematic_wave/output/columns.csv
 7ED943F4181EB488  4372  Two_Corridor_sim_kinematic_wave/output/link_performance_dta.csv  (re-frozen at S5b)
-528AAEAACF17495E    766060  Two_Corridor_sim_kinematic_wave/output/trajectories.csv          (re-frozen at S2b: all 7000 agents, interval staggering)
+964A0067D388AF55    766060  Two_Corridor_sim_kinematic_wave/output/trajectories.csv          (re-frozen at V1-d: trip_completed corrected, 1750 rows c->n)
 1D54E57A8162EC0B       254  Two_Corridor_sim_kinematic_wave/output/link_performance_ue.csv
 492CE066581BF70C      6657  Two_Corridor_sim_kinematic_wave/output/trajectories.csv
 7A5007EAC248FD49       175  Two_Corridor_sim_point_queue/output/columns.csv
 7ED943F4181EB488  4372  Two_Corridor_sim_point_queue/output/link_performance_dta.csv     (re-frozen at S5b; identical to KW in this case)
-528AAEAACF17495E    766060  Two_Corridor_sim_point_queue/output/trajectories.csv             (re-frozen at S2b: all 7000 agents, interval staggering)
+964A0067D388AF55    766060  Two_Corridor_sim_point_queue/output/trajectories.csv             (re-frozen at V1-d: trip_completed corrected, 1750 rows c->n)
 1D54E57A8162EC0B       254  Two_Corridor_sim_point_queue/output/link_performance_ue.csv
 492CE066581BF70C      6657  Two_Corridor_sim_point_queue/output/trajectories.csv
 ```

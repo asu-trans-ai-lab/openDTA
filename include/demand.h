@@ -37,9 +37,16 @@ public:
 
     ~Agent() = default;
 
+    // A vehicle's final-link departure is only a completion if it was
+    // actually recorded. The former test was `front() > 0`, but
+    // initialize_intervals() fills dep_intvls with size_type::max() and the
+    // sentinel is > 0 - so every vehicle that never reached its final link
+    // reported as arrived. Callers that know the simulation horizon must
+    // ALSO range-check get_final_dep_interval() against it: see the note
+    // there for the second way this value is not a completion.
     bool completes_trip() const
     {
-        return dep_intvls.front() > 0;
+        return dep_intvls.front() != std::numeric_limits<size_type>::max();
     }
 
     /**
@@ -54,14 +61,10 @@ public:
      *   land beyond the horizon. The link N-curves correctly never discharge
      *   such a vehicle: it is still in the network when the clock stops.
      *
-     * DEFECT NOTE: completes_trip() above tests `front() > 0`, and the
-     * sentinel max() is > 0 - so it reports every stranded vehicle as
-     * arrived. That is exactly the PT-6 leak the MVP spec calls out
-     * ("REMAINING currently unreported"). The broken predicate is left
-     * untouched so trajectories.csv stays byte-identical; V1-d's accounting
-     * uses this accessor instead. Repairing completes_trip() moves the
-     * trip_completed column and its frozen baselines, so it is its own
-     * change - see dev/doc/V1d_outputs_minispec.md.
+     * completes_trip() above now covers the first case; the horizon check
+     * cannot live there because Agent does not know the horizon, so every
+     * caller that reports completion must apply it - see
+     * NetworkHandle::output_trajectories() and output_run_reports().
      */
     size_type get_final_dep_interval() const
     {

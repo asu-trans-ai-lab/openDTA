@@ -1,0 +1,123 @@
+{
+ "commit": "c74c25f",
+ "executable_sha256_16": "4c4a3e35879eb1a2",
+ "verdict": "PASS",
+ "passed": 19,
+ "total": 19,
+ "gates": [
+  {
+   "gate": "ST00_free_flow_determinism",
+   "layer": "A",
+   "status": "PASS",
+   "detail": "14 checks, 0 failed: PASS"
+  },
+  {
+   "gate": "ST00c_terminal_agent_timestamps",
+   "layer": "B",
+   "status": "PASS",
+   "detail": "PASS (0 failing checks)"
+  },
+  {
+   "gate": "S1_departure_bin_demand",
+   "layer": "B",
+   "status": "PASS",
+   "detail": "PASS (0 failing checks)"
+  },
+  {
+   "gate": "S2c_profile_loading_and_equivalence",
+   "layer": "B",
+   "status": "PASS",
+   "detail": "PASS (0 failing checks)"
+  },
+  {
+   "gate": "S3_cumulative_departure_audit",
+   "layer": "B",
+   "status": "PASS",
+   "detail": "PASS (0 failing checks)"
+  },
+  {
+   "gate": "ST02_ST04_analytical_bank",
+   "layer": "B",
+   "status": "PASS",
+   "detail": "ST02a_step_gold: PASS (10/10 checks); ST02b_quadratic: PASS (10/10 checks); ST02c_cubic: PASS (10/10 checks); ST02d_twin_peaks: PASS (10/10 checks); ST02f_knoop_step: PASS (10/10 checks); ST02g_trapezoid: PASS (10/10 checks); ST04a_sqm_paper: PASS (10/10 checks)"
+  },
+  {
+   "gate": "ST05_spatial_and_kw_receiving",
+   "layer": "B",
+   "status": "PASS",
+   "detail": "PASS (0 failing checks)"
+  },
+  {
+   "gate": "S4_fractional_service",
+   "layer": "B",
+   "status": "PASS",
+   "detail": "PASS (0 failing checks)"
+  },
+  {
+   "gate": "S5_tt_speed_sqm_chain",
+   "layer": "B",
+   "status": "PASS",
+   "detail": "PASS (0 failing checks)"
+  },
+  {
+   "gate": "S6_tandem_gold_G2",
+   "layer": "B",
+   "status": "PASS",
+   "detail": "PASS (0 failing checks)"
+  },
+  {
+   "gate": "F05_node_models",
+   "layer": "B",
+   "status": "PASS",
+   "detail": "PASS (0 failing checks)"
+  },
+  {
+   "gate": "V1b_readiness_run_modes",
+   "layer": "B",
+   "status": "PASS",
+   "detail": "PASS (0 failing checks)"
+  },
+  {
+   "gate": "V1c_supply_provider_mu_t",
+   "layer": "B",
+   "status": "PASS",
+   "detail": "PASS (0 failing checks)"
+  },
+  {
+   "gate": "V1d_required_outputs",
+   "layer": "B",
+   "status": "PASS",
+   "detail": "PASS (0 failing checks)"
+  },
+  {
+   "gate": "F02_bad_time_rejected",
+   "layer": "B2",
+   "status": "PASS",
+   "detail": "exit 1 (expected 1)"
+  },
+  {
+   "gate": "F02_dup_id_rejected",
+   "layer": "B2",
+   "status": "PASS",
+   "detail": "exit 1 (expected 1)"
+  },
+  {
+   "gate": "F03_transims_profile_audit",
+   "layer": "B2",
+   "status": "PASS",
+   "detail": "exit 0 (expected 0)"
+  },
+  {
+   "gate": "GOLD_dataset_v2_161_assertions",
+   "layer": "C",
+   "status": "PASS",
+   "detail": "{\"overall_status\": \"PASS\", \"metric_count\": 161, \"pass_count\": 161, \"fail_count\": 0}"
+  },
+  {
+   "gate": "BASELINE_byte_exact_regression",
+   "layer": "C",
+   "status": "PASS",
+   "detail": "Two_Corridor_default: identical; Two_Corridor_sim_point_queue: identical; Two_Corridor_sim_kinematic_wave: identical"
+  }
+ ]
+}

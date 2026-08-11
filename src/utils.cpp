@@ -2010,8 +2010,6 @@ void NetworkHandle::output_link_performance_dta()
 
     // number of simulation intervals in one minute
     const unsigned short num = this->cast_minute_to_interval(1);
-    unsigned short dp_no = 0;
-    size_type ub = this->get_end_simulation_interval(dp_no);
 
     for (const auto& link_que : this->link_queues)
     {
@@ -2019,6 +2017,16 @@ void NetworkHandle::output_link_performance_dta()
 
         if (!link->get_length())
             continue;
+
+        // the period index must restart with every link. Hoisted out of this
+        // loop, it stayed pinned at the LAST period once the first link had
+        // walked the horizon, so every subsequent link was stamped with that
+        // period - and since dp_no also indexes the per-period free-flow
+        // travel time behind get_travel_time / get_speed / get_queue, those
+        // columns were computed against the wrong period wherever periods
+        // carry different fftt.
+        unsigned short dp_no = 0;
+        size_type ub = this->get_end_simulation_interval(dp_no);
 
         for (size_type t = 0, e = this->get_simulation_intervals(); t != e; ++t)
         {
@@ -2225,7 +2233,12 @@ void NetworkHandle::output_trajectories()
         // structurally incomplete.
         auto dt = agent.get_orig_dep_time();
         auto at = this->get_real_time(agent.get_dest_arr_interval());
-        char trip_status = agent.completes_trip() ? 'c' : 'n';
+        // a trip completed only if its final-link departure was recorded AND
+        // fell inside the horizon: increment_dep_interval() schedules
+        // arrival + waiting, which can land past the last simulated interval
+        char trip_status = agent.completes_trip()
+                        && agent.get_final_dep_interval() < this->get_simulation_intervals()
+                         ? 'c' : 'n';
 
         std::string time_seq_str;
         // move assignment
@@ -2458,22 +2471,30 @@ void NetworkHandle::output_run_reports()
         }
     }
 
-    // NOT completes_trip(): that predicate reads the uninitialized sentinel
-    // as a completion and would report every stranded vehicle as arrived
-    // (see the defect note in demand.h). A vehicle has left the network only
-    // if its final-link departure actually fell inside the horizon.
+    // The agent-side completion count. It is NOT authoritative: dep_intvls
+    // is PRE-SET by increment_dep_interval() the moment a vehicle joins a
+    // link's exit queue (simulation.cpp), and only overwritten with the real
+    // interval if the vehicle is actually released. A vehicle still queued at
+    // the horizon therefore carries a plausible-looking scheduled departure.
+    // The link N-curves are the physical record, so `remaining` above rules
+    // and this count is reported beside it as a discrepancy probe.
+    size_type exited_agent_records = 0;
     for (const auto& a : this->agents)
     {
-        if (a.get_final_dep_interval() < n_intvl)
+        if (a.completes_trip() && a.get_final_dep_interval() < n_intvl)
         {
-            ++exited;
+            ++exited_agent_records;
             agent_tt_hours += this->cast_interval_to_minute_double(a.get_travel_interval())
                             / MINUTES_IN_HOUR;
         }
     }
 
     size_type not_entered = generated > entered ? generated - entered : 0;
-    bool conservation_ok = entered == exited + remaining;
+    exited = entered > remaining ? entered - remaining : 0;
+    // teeth: the two independent bookkeepings must agree. They do not on
+    // networks that queue past the horizon - see D-3 in the mini-spec.
+    bool conservation_ok = generated == not_entered + exited + remaining
+                        && exited == exited_agent_records;
 
     auto cons = miocsv::Writer(this->output_dir.string() + "/conservation_report.csv");
     cons.write_row_raw("check", "scope", "expected", "actual", "abs_diff",
@@ -2492,8 +2513,12 @@ void NetworkHandle::output_run_reports()
     };
 
     write_check("vehicle_accounting_PT6", "network",
-                static_cast<double>(entered),
-                static_cast<double>(exited + remaining), 0);
+                static_cast<double>(generated),
+                static_cast<double>(not_entered + exited + remaining), 0);
+    // the discrepancy probe: agent records vs the link N-curves
+    write_check("exits_agent_vs_ncurve", "network",
+                static_cast<double>(exited),
+                static_cast<double>(exited_agent_records), 0);
 
     // the N-curve area must equal the sum of agent travel times - two
     // independent bookkeepings of the same physical time. Only meaningful
@@ -2551,6 +2576,7 @@ void NetworkHandle::output_run_reports()
       << ",\n  \"not_entered\": " << not_entered
       << ",\n  \"exited\": " << exited
       << ",\n  \"remaining\": " << remaining
+      << ",\n  \"exited_agent_records\": " << exited_agent_records
       << ",\n  \"conservation_ok\": " << (conservation_ok ? "true" : "false")
       << "\n },\n \"network\": {"
       << "\n  \"VMT\": " << vmt
