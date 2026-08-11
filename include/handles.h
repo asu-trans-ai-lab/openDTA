@@ -31,6 +31,13 @@ enum class TrafficFlowModel {
     point_queue, spatial_queue, kinematic_wave
 };
 
+// V1-b: Smoke mode runs with disclosed defaults (uniform profile, constant
+// mu from capacity); Strict Validation mode blocks on any unsourced supply
+// or profile - see OPENDTA_V1_MVP_SPEC.md section 3
+enum class RunMode {
+    smoke, validation
+};
+
 class NetworkHandle {
 public:
     NetworkHandle() = default;
@@ -55,6 +62,9 @@ public:
 
     void find_ue();
     void run_simulation();
+    // V1-b: print the nine READY statuses, write readiness_report.json,
+    // and throw (nonzero exit) if any status is BLOCKED
+    void report_readiness();
 
     void setup_working_dirs(const char*, const char*);
 
@@ -307,6 +317,7 @@ private:
     unsigned short simu_dur = 60;
 
     TrafficFlowModel tfm = TrafficFlowModel::point_queue;
+    RunMode run_mode = RunMode::smoke;
 
     std::vector<LinkQueue> link_queues;
     // F05-a: deterministic fractional-share accumulators for the merge
